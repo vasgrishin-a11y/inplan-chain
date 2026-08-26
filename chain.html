@@ -1,0 +1,1576 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Визуализация сети поставок · In.Plan</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@300;400;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.sheetjs.com/xlsx-0.20.2/package/dist/xlsx.full.min.js"></script>
+<style>
+/* ═══════════════ ДИЗАЙН-СИСТЕМА In.Plan ═══════════════ */
+:root {
+  --scp-bg: #f4f3f7;
+  --scp-surface: #ffffff;
+  --scp-surface-2: #f9f8fb;
+  --scp-rail: #17171a;
+  --scp-rail-2: #2a2a30;
+  --scp-rail-hover: #242429;
+  
+  --scp-text: #212529;
+  --scp-text-2: #444647;
+  --scp-text-3: #8c9096;
+  --scp-text-dis: #d9d9d9;
+  --scp-link: #0d56e2;
+  
+  --scp-line: #e8e7ee;
+  --scp-line-2: #dedce5;
+  --scp-divider: #cbcbcb;
+  --scp-ctrl: #949598;
+  --scp-ctrl-hover: #5a5a5c;
+  --scp-menu-bd: #cfd4dc;
+  
+  --scp-accent: #9000ff;
+  --scp-accent-hover: #7320d9;
+  --scp-accent-active: #822be2;
+  --scp-accent-sub: #af47ff;
+  --scp-accent-2: #c57aff;
+  --scp-accent-bd: #e9ccff;
+  --scp-accent-bg: #f1e0ff;
+  
+  --scp-ok: #22bb55;
+  --scp-ok-bg: #d2faef;
+  --scp-err: #f22a41;
+  --scp-err-bg: #ffd6db;
+  --scp-warn: #ff9a3b;
+  --scp-warn-bg: #fcf0d4;
+  
+  --r-s: 4px;
+  --r-m: 8px;
+  --r-l: 16px;
+}
+
+[data-theme="dark"] {
+  --scp-bg: #1a1a22;
+  --scp-surface: #22222c;
+  --scp-surface-2: #292936;
+  --scp-rail: #15151c;
+  --scp-rail-2: #2f2f3d;
+  --scp-rail-hover: #252533;
+  
+  --scp-text: #f1f2f6;
+  --scp-text-2: #c4c6d4;
+  --scp-text-3: #8f92a4;
+  --scp-text-dis: #525464;
+  --scp-link: #4d88ff;
+  
+  --scp-line: #2d2d3a;
+  --scp-line-2: #383849;
+  --scp-divider: #434357;
+  --scp-ctrl: #616378;
+  --scp-ctrl-hover: #9a9cb2;
+  --scp-menu-bd: #434357;
+  
+  --scp-accent: #a846ff;
+  --scp-accent-hover: #962bf9;
+  --scp-accent-active: #be6bff;
+  --scp-accent-sub: #c47aff;
+  --scp-accent-2: #d79aff;
+  --scp-accent-bd: #6e2da8;
+  --scp-accent-bg: #3a195a;
+  
+  --scp-ok: #2dd468;
+  --scp-ok-bg: #143823;
+  --scp-err: #f84b5c;
+  --scp-err-bg: #42171c;
+  --scp-warn: #fb9e38;
+  --scp-warn-bg: #41290f;
+}
+
+* { box-sizing: border-box; }
+html, body { height: 100%; margin: 0; padding: 0; }
+body {
+  background: var(--scp-bg);
+  color: var(--scp-text);
+  font: 400 13.5px/19px 'Open Sans', -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  transition: background .2s ease, color .2s ease;
+}
+
+/* ═══════════════ ВЕРХНЯЯ ШАПКА ═══════════════ */
+header {
+  background: var(--scp-surface);
+  border-bottom: 1px solid var(--scp-line-2);
+  height: 52px;
+  min-height: 52px;
+  display: flex;
+  align-items: center;
+  padding: 0 16px;
+  gap: 10px;
+  z-index: 50;
+}
+.inplan-badge {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  padding: 5px;
+  border-radius: 5px;
+  background: rgba(144,0,255,0.06);
+  border: 1px solid var(--scp-accent-bd);
+  cursor: pointer;
+}
+.ip-sq { width: 9px; height: 9px; border-radius: 2px; }
+.ip-s1 { background: var(--scp-accent); }
+.ip-s2 { background: var(--scp-accent-sub); }
+.ip-s3 { background: var(--scp-accent-2); }
+.hdr-title { font-size: 15px; font-weight: 700; color: var(--scp-text); white-space: nowrap; margin-right: 6px; }
+
+/* Фильтры-дропдауны */
+.pop-wrap { position: relative; }
+.fchip-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 30px;
+  padding: 0 11px;
+  background: var(--scp-surface);
+  border: 1px solid var(--scp-ctrl);
+  border-radius: 20px;
+  font: 600 12px 'Open Sans', sans-serif;
+  color: var(--scp-text);
+  cursor: pointer;
+  transition: .12s;
+}
+.fchip-btn:hover { border-color: var(--scp-accent); }
+.fchip-btn.on { background: var(--scp-accent-bg); border-color: var(--scp-accent); color: var(--scp-accent); }
+.fchip-btn .badge {
+  background: var(--scp-accent);
+  color: #fff;
+  font-size: 10.5px;
+  font-weight: 700;
+  border-radius: 9999px;
+  padding: 0 5px;
+  height: 16px;
+  display: inline-flex;
+  align-items: center;
+}
+.fchip-btn .badge.hide { display: none; }
+
+.pop-menu {
+  display: none;
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  min-width: 250px;
+  max-width: 340px;
+  background: var(--scp-surface);
+  border: 1px solid var(--scp-menu-bd);
+  border-radius: var(--r-m);
+  box-shadow: 0 6px 20px rgba(0,0,0,0.18);
+  padding: 8px;
+  z-index: 500;
+}
+.pop-wrap.open .pop-menu { display: block; }
+.pop-hdr {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 3px 4px 6px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .5px;
+  color: var(--scp-text-3);
+  border-bottom: 1px solid var(--scp-line);
+}
+.pop-hdr a { color: var(--scp-accent); cursor: pointer; text-decoration: none; font-size: 11px; font-weight: 600; }
+.pop-hdr a:hover { text-decoration: underline; }
+.pop-q {
+  width: 100%;
+  background: var(--scp-surface-2);
+  color: var(--scp-text);
+  border: 1px solid var(--scp-line-2);
+  border-radius: var(--r-s);
+  padding: 5px 8px;
+  font: 400 12.5px 'Open Sans', sans-serif;
+  margin: 6px 0 4px;
+}
+.pop-q:focus { outline: none; border-color: var(--scp-accent); }
+.pop-list {
+  max-height: 220px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+.pop-item {
+  padding: 5px 6px;
+  border-radius: var(--r-s);
+  font-size: 12.5px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  user-select: none;
+}
+.pop-item:hover { background: var(--scp-accent-bg); }
+.pop-item.on { background: var(--scp-accent-bg); font-weight: 600; color: var(--scp-accent); }
+.pop-item input { margin: 0; accent-color: var(--scp-accent); cursor: pointer; }
+.pop-item span { flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+.btn-clr-flt {
+  display: inline-flex;
+  align-items: center;
+  height: 28px;
+  padding: 0 9px;
+  background: transparent;
+  border: 0;
+  border-radius: var(--r-s);
+  font: 600 11.5px 'Open Sans', sans-serif;
+  color: var(--scp-err);
+  cursor: pointer;
+}
+.btn-clr-flt:hover:not(:disabled) { background: var(--scp-err-bg); }
+.btn-clr-flt:disabled { color: var(--scp-text-dis); cursor: default; }
+
+.hdr-right {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.tgl-wrap {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--scp-text-2);
+  user-select: none;
+  cursor: pointer;
+}
+.tgl-sw {
+  width: 30px;
+  height: 16px;
+  background: var(--scp-line-2);
+  border-radius: 9px;
+  position: relative;
+  transition: .2s;
+}
+.tgl-sw::after {
+  content: '';
+  position: absolute;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: #fff;
+  top: 2px;
+  left: 2px;
+  transition: .2s;
+}
+.tgl-wrap.on .tgl-sw { background: var(--scp-accent); }
+.tgl-wrap.on .tgl-sw::after { transform: translateX(14px); }
+
+.seg-btn {
+  display: inline-flex;
+  background: var(--scp-surface-2);
+  border: 1px solid var(--scp-line-2);
+  border-radius: var(--r-s);
+  padding: 2px;
+}
+.seg-btn button {
+  border: 0;
+  background: transparent;
+  color: var(--scp-text-2);
+  font: 600 12px 'Open Sans', sans-serif;
+  padding: 4px 10px;
+  border-radius: 3px;
+  cursor: pointer;
+}
+.seg-btn button.on {
+  background: var(--scp-accent);
+  color: #fff;
+}
+
+.icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  background: var(--scp-surface);
+  border: 1px solid var(--scp-ctrl);
+  border-radius: var(--r-s);
+  color: var(--scp-text-2);
+  cursor: pointer;
+  transition: .12s;
+}
+.icon-btn:hover {
+  border-color: var(--scp-accent);
+  color: var(--scp-accent);
+  background: var(--scp-accent-bg);
+}
+.icon-btn.p {
+  background: var(--scp-accent);
+  color: #fff;
+  border-color: var(--scp-accent);
+  font-weight: 600;
+  padding: 0 12px;
+  width: auto;
+  gap: 6px;
+  font-size: 12.5px;
+}
+.icon-btn.p:hover { background: var(--scp-accent-hover); color: #fff; }
+.icon-btn svg { width: 16px; height: 16px; stroke: currentColor; fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+
+/* ═══════════════ ОСНОВНОЙ РАЗДЕЛ (СПЛИТТЕР) ═══════════════ */
+.main-layout {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  position: relative;
+}
+
+/* ЛЕВАЯ ПАНЕЛЬ "УЗЛЫ" */
+.sidebar {
+  width: 250px;
+  min-width: 250px;
+  background: var(--scp-surface);
+  border-right: 1px solid var(--scp-line-2);
+  display: flex;
+  flex-direction: column;
+  transition: width .2s ease, min-width .2s ease;
+  z-index: 20;
+}
+.sidebar.min { width: 0; min-width: 0; overflow: hidden; border-right: none; }
+.sb-hdr {
+  padding: 9px 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid var(--scp-line);
+  font-weight: 700;
+  font-size: 12.5px;
+}
+.sb-hdr a { font-size: 11px; color: var(--scp-accent); text-decoration: none; cursor: pointer; }
+.sb-search {
+  padding: 6px 10px;
+  border-bottom: 1px solid var(--scp-line);
+}
+.sb-search input {
+  width: 100%;
+  background: var(--scp-surface-2);
+  color: var(--scp-text);
+  border: 1px solid var(--scp-line-2);
+  border-radius: var(--r-s);
+  padding: 5px 8px;
+  font: 400 12px 'Open Sans', sans-serif;
+}
+.sb-search input:focus { outline: none; border-color: var(--scp-accent); }
+.sb-tree {
+  flex: 1;
+  overflow-y: auto;
+  padding: 4px 0;
+}
+.sb-grp-title {
+  padding: 6px 12px 3px;
+  font-size: 10.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .5px;
+  color: var(--scp-text-3);
+  display: flex;
+  justify-content: space-between;
+}
+.sb-item {
+  padding: 4px 10px 4px 16px;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 12px;
+  color: var(--scp-text);
+  cursor: pointer;
+  user-select: none;
+}
+.sb-item:hover { background: var(--scp-accent-bg); }
+.sb-item.on { background: var(--scp-accent-bg); font-weight: 600; color: var(--scp-accent); }
+.sb-item input { margin: 0; accent-color: var(--scp-accent); }
+.sb-item-icon { font-size: 12px; }
+
+/* ЦЕНТРАЛЬНАЯ ОБЛАСТЬ (ХОЛСТ ГРАФА ИЛИ МАТРИЦА) */
+.content-area {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  background: var(--scp-bg);
+  position: relative;
+}
+.sb-unfold-btn {
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  background: var(--scp-surface);
+  border: 1px solid var(--scp-line-2);
+  border-left: none;
+  border-radius: 0 8px 8px 0;
+  padding: 10px 5px;
+  cursor: pointer;
+  z-index: 25;
+  box-shadow: 2px 0 8px rgba(0,0,0,0.08);
+  color: var(--scp-accent);
+  font-weight: 700;
+  font-size: 14px;
+  display: none;
+}
+.sb-unfold-btn:hover { background: var(--scp-accent-bg); }
+.graph-toolbar {
+  position: absolute;
+  top: 10px;
+  left: 12px;
+  background: var(--scp-surface);
+  border: 1px solid var(--scp-line-2);
+  border-radius: var(--r-m);
+  padding: 5px 12px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 12px;
+  color: var(--scp-text-2);
+  z-index: 10;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.06);
+}
+.graph-stats { font-weight: 700; color: var(--scp-accent); }
+.graph-legend { display: flex; gap: 10px; font-size: 11.5px; }
+.graph-legend span { display: flex; align-items: center; gap: 4px; }
+.graph-focus-pill {
+  background: var(--scp-accent-bg);
+  color: var(--scp-accent);
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.graph-focus-pill button { border: 0; background: transparent; cursor: pointer; color: var(--scp-accent); font-weight: 700; padding: 0 2px; }
+
+.graph-canvas-wrap {
+  flex: 1;
+  position: relative;
+  overflow: hidden;
+}
+canvas#graphCanvas {
+  width: 100%;
+  height: 100%;
+  display: block;
+  cursor: grab;
+}
+canvas#graphCanvas:active { cursor: grabbing; }
+
+/* РЕЖИМ МАТРИЦЫ */
+.matrix-container {
+  display: none;
+  flex: 1;
+  overflow: auto;
+  padding: 16px;
+  background: var(--scp-bg);
+}
+.matrix-card {
+  background: var(--scp-surface);
+  border: 1px solid var(--scp-line-2);
+  border-radius: var(--r-m);
+  padding: 16px;
+}
+.matrix-tbl { width: auto; border-collapse: separate; border-spacing: 2px; }
+.matrix-tbl th { font-size: 11px; padding: 6px 8px; text-align: center; background: var(--scp-surface-2); }
+.matrix-tbl td { font-size: 11.5px; padding: 6px 10px; text-align: center; border: 1px solid var(--scp-line); border-radius: 4px; }
+.matrix-cell-active { background: var(--scp-accent-bg); color: var(--scp-accent); font-weight: 700; cursor: pointer; }
+.matrix-cell-active:hover { background: var(--scp-accent); color: #fff; }
+
+/* ═══════════════ НИЖНЯЯ ПАНЕЛЬ ТАБЛИЦ ═══════════════ */
+.bottom-sheet {
+  background: var(--scp-surface);
+  border-top: 1px solid var(--scp-line-2);
+  height: 240px;
+  min-height: 110px;
+  max-height: 70vh;
+  display: flex;
+  flex-direction: column;
+  z-index: 30;
+  position: relative;
+}
+.bs-resizer {
+  height: 5px;
+  cursor: row-resize;
+  background: transparent;
+  position: absolute;
+  top: -3px;
+  left: 0;
+  right: 0;
+  z-index: 40;
+}
+.bs-resizer:hover { background: var(--scp-accent); opacity: .4; }
+
+.bs-nav {
+  display: flex;
+  align-items: center;
+  padding: 0 16px;
+  border-bottom: 1px solid var(--scp-line-2);
+  gap: 4px;
+  background: var(--scp-surface-2);
+  min-height: 38px;
+}
+.bs-tab {
+  background: transparent;
+  border: 0;
+  border-bottom: 2.5px solid transparent;
+  padding: 8px 12px;
+  font: 600 12px 'Open Sans', sans-serif;
+  color: var(--scp-text-2);
+  cursor: pointer;
+  transition: .15s;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.bs-tab:hover { color: var(--scp-text); }
+.bs-tab.on {
+  color: var(--scp-accent);
+  border-bottom-color: var(--scp-accent);
+  background: var(--scp-surface);
+}
+.bs-badge {
+  background: var(--scp-err);
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+  border-radius: 10px;
+  padding: 1px 6px;
+}
+
+.bs-body {
+  flex: 1;
+  overflow: auto;
+  padding: 8px 16px;
+}
+
+/* Таблицы */
+table { width: 100%; border-collapse: collapse; font-size: 12px; }
+th, td { padding: 6px 10px; text-align: left; border-bottom: 1px solid var(--scp-line); white-space: nowrap; }
+th { background: var(--scp-surface-2); color: var(--scp-text-2); font-weight: 600; position: sticky; top: 0; z-index: 2; }
+tbody tr:hover { background: var(--scp-accent-bg); }
+.tag-warn { background: var(--scp-warn-bg); color: var(--scp-warn); padding: 2px 6px; border-radius: 4px; font-weight: 600; }
+.tag-err { background: var(--scp-err-bg); color: var(--scp-err); padding: 2px 6px; border-radius: 4px; font-weight: 600; }
+.tag-ok { background: var(--scp-ok-bg); color: var(--scp-ok); padding: 2px 6px; border-radius: 4px; font-weight: 600; }
+
+/* Подсказка тултипа */
+#graphTip {
+  position: fixed;
+  display: none;
+  z-index: 1000;
+  background: rgba(23, 23, 28, 0.94);
+  color: #fff;
+  padding: 8px 12px;
+  border-radius: 6px;
+  font-size: 12px;
+  line-height: 16px;
+  pointer-events: none;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+  max-width: 290px;
+}
+#graphTip b { color: var(--scp-accent-2); }
+</style>
+</head>
+<body>
+
+<!-- ═══════════════ ШАПКА ПАНЕЛИ ═══════════════ -->
+<header>
+  <button class="icon-btn" id="bHdrToggleSb" title="Свернуть / развернуть меню узлов сети">
+    <svg viewBox="0 0 24 24"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+  </button>
+  <div class="inplan-badge" id="bLogo" title="In.Plan SNP Model">
+    <span class="ip-sq ip-s1"></span>
+    <span class="ip-sq ip-s2"></span>
+    <span class="ip-sq ip-s3"></span>
+  </div>
+  <span class="hdr-title">Визуализация сети</span>
+
+  <!-- Фильтр Продуктов (Мультивыбор) -->
+  <div class="pop-wrap" id="popItemsWrap">
+    <button class="fchip-btn" id="bItemPop"><span id="lblCurItem">Продукты: Все</span> <span class="badge hide" id="badgeItem">0</span> ▾</button>
+    <div class="pop-menu">
+      <div class="pop-hdr"><span>Продукты / SKU</span><div><a id="btnItemAll">Все</a> · <a id="btnItemClr">Сброс</a></div></div>
+      <input type="text" class="pop-q" id="qItem" placeholder="Поиск SKU...">
+      <div class="pop-list" id="listItems"></div>
+    </div>
+  </div>
+
+  <!-- Фильтр Рецептур PDS (Мультивыбор) -->
+  <div class="pop-wrap" id="popPdsWrap">
+    <button class="fchip-btn" id="bPdsPop"><span id="lblCurPds">Спецификации: Все</span> <span class="badge hide" id="badgePds">0</span> ▾</button>
+    <div class="pop-menu">
+      <div class="pop-hdr"><span>Рецепты / PDS</span><div><a id="btnPdsAll">Все</a> · <a id="btnPdsClr">Сброс</a></div></div>
+      <input type="text" class="pop-q" id="qPds" placeholder="Поиск PDS...">
+      <div class="pop-list" id="listPds"></div>
+    </div>
+  </div>
+
+  <button class="btn-clr-flt" id="bResetAllFilters" disabled>Сбросить фильтры</button>
+
+  <div class="hdr-right">
+    <div class="tgl-wrap" id="tglWarns">
+      <div class="tgl-sw"></div>
+      <span>Предупреждения <span class="bs-badge" id="warnBadgeCount">0</span></span>
+    </div>
+    
+    <div class="seg-btn">
+      <button class="on" id="btnModeGraph">Граф</button>
+      <button id="btnModeMatrix">Матрица</button>
+    </div>
+    
+    <button class="icon-btn" id="bTheme" title="Сменить тему"><svg viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg></button>
+    
+    <button class="icon-btn p" id="bUpload" title="Загрузить файлы XLSX (sku, res, prodsource, tlane)">
+      <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+      <span>Загрузить данные</span>
+    </button>
+    <input type="file" id="fInput" multiple accept=".xlsx,.xls" style="display:none">
+  </div>
+</header>
+
+<!-- ═══════════════ ОСНОВНАЯ ОБЛАСТЬ ═══════════════ -->
+<div class="main-layout">
+
+  <!-- ЛЕВАЯ ПАНЕЛЬ "УЗЛЫ" -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sb-hdr">
+      <span>Узлы сети</span>
+      <div>
+        <a id="btnNodesClr" style="margin-right:8px">Сброс</a>
+        <button class="icon-btn" id="bToggleSb" style="width:20px;height:20px;border:0" title="Свернуть">‹</button>
+      </div>
+    </div>
+    <div class="sb-search">
+      <input type="text" id="sbSearchInput" placeholder="Поиск узла...">
+    </div>
+    <div class="sb-tree" id="sbTree"></div>
+  </aside>
+
+  <!-- ЦЕНТР: ХОЛСТ ГРАФА ИЛИ МАТРИЦА -->
+  <div class="content-area">
+    
+    <div class="graph-toolbar" id="gToolbar">
+      <span>Сетка: <span class="graph-stats" id="graphStat">0 узлов · 0 связей</span></span>
+      <div class="graph-legend">
+        <span>🏭 Завод</span>
+        <span>🏢 РЦ/Склад</span>
+        <span>⚓ Порт</span>
+        <span>📦 Поставщик</span>
+        <span>🛒 Сбыт</span>
+      </div>
+      <div id="focusPillWrap" style="display:none">
+        <span class="graph-focus-pill"><span id="focusPillText">Фокус</span> <button id="bClearFocus">✕</button></span>
+      </div>
+    </div>
+
+    <!-- Область холста -->
+    <div class="graph-canvas-wrap" id="graphWrap">
+      <button class="sb-unfold-btn" id="bFloatingRestoreSb" title="Раскрыть панель узлов">›</button>
+      <canvas id="graphCanvas"></canvas>
+    </div>
+
+    <!-- Область матрицы -->
+    <div class="matrix-container" id="matrixWrap">
+      <div class="matrix-card">
+        <h4 style="margin:0 0 12px">Матрица транспортных отношений (Откуда \ Куда)</h4>
+        <div id="matrixTableHost"></div>
+      </div>
+    </div>
+
+  </div>
+
+</div>
+
+<!-- ═══════════════ НИЖНЯЯ ТАБЛИЧНАЯ ПАНЕЛЬ ═══════════════ -->
+<div class="bottom-sheet" id="bottomSheet">
+  <div class="bs-resizer" id="bsResizer"></div>
+  <div class="bs-nav">
+    <button class="bs-tab on" data-tab="sku">SKU матрица (<span id="cntSku">0</span>)</button>
+    <button class="bs-tab" data-tab="tlane">Транспортные отношения (<span id="cntTlane">0</span>)</button>
+    <button class="bs-tab" data-tab="res">Ресурсы и мощности (<span id="cntRes">0</span>)</button>
+    <button class="bs-tab" data-tab="prodsource">Рецептуры PDS (<span id="cntPds">0</span>)</button>
+    <button class="bs-tab" data-tab="audit">Предупреждения (<span id="cntAudit">0</span>)</button>
+  </div>
+  <div class="bs-body" id="bsBody"></div>
+</div>
+
+<div id="graphTip"></div>
+
+<!-- ═══════════════ СКРИПТЫ МОДЕЛИ И ДВИЖКА ═══════════════ -->
+<script>
+/* ═══════════════ 1. СТРУКТУРА ДАННЫХ И ДЕМО-НАБОР ═══════════════ */
+const MODEL = {
+  sku: [],
+  res: [],
+  prodsource: [],
+  tlane: [],
+  audit: []
+};
+
+// Компактный базовый демо-набор
+const SEED_DATA = {
+  sku: [
+    { item: 'FPSO_1', loc: 'Plant_35', res: 'Plant_35_RES_104', minlotsize: 10, maxlotsize: 5000 },
+    { item: 'FPSO_1', loc: 'Dispatch_EX_7', res: '', minlotsize: 0, maxlotsize: 0 },
+    { item: 'FPSO_1', loc: 'Sale_EX_2', res: '', minlotsize: 0, maxlotsize: 0 },
+    { item: 'SPFC_29', loc: 'Plant_31', res: 'Plant_31_RES_97', minlotsize: 5, maxlotsize: 2000 },
+    { item: 'FCR_23', loc: 'Vendor_20', res: '', minlotsize: 1, maxlotsize: 500 }
+  ],
+  res: [
+    { id: 'Plant_35_RES_196', loc: 'Plant_35', name: 'Отделка труб', type: '1', capuom: 'H', capacity: 24 },
+    { id: 'Plant_35_RES_104', loc: 'Plant_35', name: 'Склад ГП Plant_35', type: '2', capuom: 'TO', capacity: 50000 },
+    { id: 'Plant_31_RES_151', loc: 'Plant_31', name: 'Прокатный стан', type: '1', capuom: 'H', capacity: 24 },
+    { id: 'Port_4_RES_163', loc: 'Port_4', name: 'Портовый фрахт', type: '4', capuom: 'TO', capacity: 10000 }
+  ],
+  prodsource: [
+    { prodsource: 'F_PIP_HF_OBSO_000285_TMZ_0007', item: 'FPSO_1', loc: 'Plant_35', prodver: 'STZ_0001', prio: 1, outputqty: 1 },
+    { prodsource: 'S_PIP_HF_RL_00727_STZ_0001', item: 'SPFC_29', loc: 'Plant_31', prodver: 'NB_0001', prio: 1, outputqty: 1 }
+  ],
+  tlane: [
+    { item: 'FCR_23', locfr: 'Vendor_20', locto: 'Plant_31', mot: 'SUPTRAN', leadtime: 4 },
+    { item: 'SPFC_29', locfr: 'Plant_31', locto: 'Plant_35', mot: 'RAIL', leadtime: 2 },
+    { item: 'FPSO_1', locfr: 'Plant_35', locto: 'Port_4', mot: 'TRUCK', leadtime: 1 },
+    { item: 'FPSO_1', locfr: 'Port_4', locto: 'Port_28', mot: 'PORTHANDL', leadtime: 1 },
+    { item: 'FPSO_1', locfr: 'Port_28', locto: 'Dispatch_EX_7', mot: 'SHIPCONTAN', leadtime: 8 },
+    { item: 'FPSO_1', locfr: 'Dispatch_EX_7', locto: 'Sale_EX_2', mot: 'LASTMILE', leadtime: 1 }
+  ]
+};
+
+/* ═══════════════ 2. ГЛОБАЛЬНОЕ СОСТОЯНИЕ ФИЛЬТРОВ ═══════════════ */
+const FILTERS = {
+  items: [],      // массив выбранных SKU
+  pds: [],        // массив выбранных рецептов PDS
+  nodes: []       // массив выбранных узлов сети
+};
+
+let FOCUS_NODE_ID = null; // узел, выбранный кликом на графе для подсветки связей
+let VIEW_MODE = 'graph';  // 'graph' | 'matrix'
+let ACTIVE_TAB = 'sku';   // 'sku' | 'tlane' | 'res' | 'prodsource' | 'audit'
+let SHOW_WARNS_ONLY = false;
+
+/* ═══════════════ 3. УНИВЕРСАЛЬНЫЙ ПАРСЕР XLSX ═══════════════ */
+function normalizeKey(k) {
+  return String(k || '').trim().toLowerCase().replace(/[^a-zа-я0-9]/g, '');
+}
+
+function parseWorkbookSheets(wb) {
+  const sheetMap = {};
+  wb.SheetNames.forEach(n => sheetMap[normalizeKey(n)] = n);
+
+  const getSheetData = (aliases) => {
+    for (const a of aliases) {
+      const match = Object.keys(sheetMap).find(k => k.includes(normalizeKey(a)));
+      if (match) return XLSX.utils.sheet_to_json(wb.Sheets[sheetMap[match]], { defval: '' });
+    }
+    return null;
+  };
+
+  const rawSku = getSheetData(['sku', 'номенклатура', 'материалы']);
+  const rawRes = getSheetData(['res', 'ресурс', 'мощности']);
+  const rawPds = getSheetData(['prodsource', 'pds', 'рецепт', 'спецификация']);
+  const rawTlane = getSheetData(['tlane', 'transport', 'плечи', 'отношения']);
+
+  if (rawSku) MODEL.sku = rawSku.map(r => ({
+    item: r.item || r['Продукт'] || r['Материал'] || '',
+    loc: r.loc || r['Локация'] || r['Склад'] || '',
+    res: r['Ресурс: код'] || r.res || r['Ресурс'] || '',
+    minlotsize: parseFloat(r.minlotsize || r.min_lot || 0),
+    maxlotsize: parseFloat(r.maxlotsize || r.max_lot || 0)
+  })).filter(x => x.item && x.loc);
+
+  if (rawRes) MODEL.res = rawRes.map(r => ({
+    id: r['Ресурс'] || r.res || r.id || '',
+    loc: r['Локация: код'] || r.loc || '',
+    name: r['Ресурс: наименование'] || r.name || '',
+    type: String(r['Тип Ресурса'] || r.type || '1'),
+    capuom: r.capuom || 'H',
+    capacity: parseFloat(r.defaultbucketcapacity || r.capacity || 24)
+  })).filter(x => x.id);
+
+  if (rawPds) MODEL.prodsource = rawPds.map(r => ({
+    prodsource: r.prodsource || r['Рецепт'] || r.id || '',
+    item: r.item || r['Продукт'] || '',
+    loc: r.loc || r['Локация'] || '',
+    prodver: r.prodver || r['Версия'] || '',
+    prio: parseInt(r.prodsourceprio || 1),
+    outputqty: parseFloat(r.outputqty || 1)
+  })).filter(x => x.item && x.loc);
+
+  if (rawTlane) MODEL.tlane = rawTlane.map(r => ({
+    item: r.item || r['Продукт'] || '',
+    locfr: r.locfr || r['Откуда'] || '',
+    locto: r.locto || r['Куда'] || '',
+    mot: r.mot || r['Вид транспорта'] || 'TRUCK',
+    leadtime: parseFloat(r.tleadtime || r.leadtime || 1)
+  })).filter(x => x.locfr && x.locto);
+
+  FILTERS.items = [];
+  FILTERS.pds = [];
+  FILTERS.nodes = [];
+  FOCUS_NODE_ID = null;
+
+  runModelAudit();
+  refreshUI();
+}
+
+function runModelAudit() {
+  MODEL.audit = [];
+  const knownLocs = new Set([...MODEL.sku.map(s => s.loc), ...MODEL.res.map(r => r.loc)]);
+
+  MODEL.tlane.forEach(t => {
+    if (t.locfr && !knownLocs.has(t.locfr)) {
+      MODEL.audit.push({ type: 'err', cat: 'Транспорт', obj: `${t.locfr} → ${t.locto}`, msg: `Локация отправления "${t.locfr}" не описана в матрице SKU/Res` });
+    }
+    if (t.locto && !knownLocs.has(t.locto)) {
+      MODEL.audit.push({ type: 'err', cat: 'Транспорт', obj: `${t.locfr} → ${t.locto}`, msg: `Локация назначения "${t.locto}" не описана в матрице SKU/Res` });
+    }
+  });
+
+  MODEL.prodsource.forEach(p => {
+    const exists = MODEL.sku.some(s => s.item === p.item && s.loc === p.loc);
+    if (!exists) {
+      MODEL.audit.push({ type: 'warn', cat: 'PDS/BOM', obj: `${p.prodsource}`, msg: `Продукт ${p.item} производится на ${p.loc}, но отсутствует запись в SKU` });
+    }
+  });
+
+  document.getElementById('warnBadgeCount').textContent = MODEL.audit.length;
+}
+
+/* ═══════════════ 4. ФИЛЬТРАЦИЯ И СВЯЗНОСТЬ ═══════════════ */
+function getFilteredDataset() {
+  let effTlane = MODEL.tlane;
+  let effPds = MODEL.prodsource;
+  let effSku = MODEL.sku;
+  let effRes = MODEL.res;
+
+  // 1. Фильтр по продуктам
+  if (FILTERS.items.length) {
+    const set = new Set(FILTERS.items);
+    effTlane = effTlane.filter(t => set.has(t.item));
+    effPds = effPds.filter(p => set.has(p.item));
+    effSku = effSku.filter(s => set.has(s.item));
+  }
+
+  // 2. Фильтр по рецептурам PDS
+  if (FILTERS.pds.length) {
+    const setPds = new Set(FILTERS.pds);
+    const pdsItems = new Set(MODEL.prodsource.filter(p => setPds.has(p.prodsource)).map(p => p.item));
+    effPds = effPds.filter(p => setPds.has(p.prodsource));
+    effTlane = effTlane.filter(t => pdsItems.has(t.item));
+    effSku = effSku.filter(s => pdsItems.has(s.item));
+  }
+
+  // 3. Фильтр по выбранным узлам (оставляем связный подграф)
+  if (FILTERS.nodes.length) {
+    const selSet = new Set(FILTERS.nodes);
+    // Ищем все плечи, которые напрямую связывают выбранные узлы
+    effTlane = effTlane.filter(t => selSet.has(t.locfr) || selSet.has(t.locto));
+    const activeLocs = new Set(effTlane.flatMap(t => [t.locfr, t.locto]));
+    FILTERS.nodes.forEach(n => activeLocs.add(n));
+
+    effPds = effPds.filter(p => activeLocs.has(p.loc));
+    effSku = effSku.filter(s => activeLocs.has(s.loc));
+    effRes = effRes.filter(r => activeLocs.has(r.loc));
+  }
+
+  return { tlane: effTlane, pds: effPds, sku: effSku, res: effRes };
+}
+
+/* ═══════════════ 5. ГРАФОВЫЙ ДВИЖОК CANVAS ═══════════════ */
+let GRAPH = { nodes: [], edges: [], zoom: 1, panX: 40, panY: 40, isDragging: false, dragNode: null, startX: 0, startY: 0 };
+
+function getNodeCategory(loc) {
+  const l = loc.toUpperCase();
+  if (l.startsWith('PLANT') || l.startsWith('FACT')) return { cat: 'Заводы', icon: '🏭', color: '#2d3f8f', rank: 2 };
+  if (l.startsWith('DISPATCH') || l.startsWith('DC') || l.startsWith('WH')) return { cat: 'РЦ/Склады', icon: '🏢', color: '#0d9488', rank: 3 };
+  if (l.startsWith('PORT')) return { cat: 'Порты', icon: '⚓', color: '#3fa9c9', rank: 4 };
+  if (l.startsWith('VENDOR') || l.startsWith('SUPP')) return { cat: 'Поставщики', icon: '📦', color: '#ff9a3b', rank: 1 };
+  if (l.startsWith('SALE') || l.startsWith('CUST')) return { cat: 'Сбыт', icon: '🛒', color: '#22bb55', rank: 5 };
+  return { cat: 'Прочие узлы', icon: '🏬', color: '#7c5cd6', rank: 3 };
+}
+
+function buildGraphTopology() {
+  const { tlane, pds, sku } = getFilteredDataset();
+  const nodeMap = new Map();
+  const edges = [];
+
+  const addNode = (id) => {
+    if (!nodeMap.has(id)) {
+      const info = getNodeCategory(id);
+      nodeMap.set(id, { id, label: id, ...info, x: 0, y: 0, w: 125, h: 40 });
+    }
+    return nodeMap.get(id);
+  };
+
+  tlane.forEach(t => {
+    const u = addNode(t.locfr);
+    const v = addNode(t.locto);
+    edges.push({ from: u, to: v, label: `${t.item} (${t.mot})`, item: t.item, mot: t.mot, leadtime: t.leadtime });
+  });
+
+  // Добавляем заводы из PDS / SKU, если связей нет
+  pds.forEach(p => addNode(p.loc));
+  if (!tlane.length && sku.length) {
+    sku.forEach(s => addNode(s.loc));
+  }
+
+  const nodes = Array.from(nodeMap.values());
+
+  // Авто-раскладка по уровням (рангам)
+  const rankGroups = {};
+  nodes.forEach(n => {
+    const r = n.rank || 3;
+    if (!rankGroups[r]) rankGroups[r] = [];
+    rankGroups[r].push(n);
+  });
+
+  const colW = 210;
+  const sortedRanks = Object.keys(rankGroups).sort((a,b) => a - b);
+  sortedRanks.forEach((r, colIdx) => {
+    const list = rankGroups[r];
+    const rowH = Math.max(65, Math.min(110, 480 / Math.max(list.length, 1)));
+    list.forEach((n, rowIdx) => {
+      n.x = 70 + colIdx * colW;
+      n.y = 70 + rowIdx * rowH;
+    });
+  });
+
+  GRAPH.nodes = nodes;
+  GRAPH.edges = edges;
+
+  document.getElementById('graphStat').textContent = `${nodes.length} узлов · ${edges.length} связей`;
+}
+
+// Направленный алгоритм выделения цепочки (Upstream поставщики + Downstream потребители)
+function getLineageInfo(targetId) {
+  if (!targetId) return null;
+  const upNodes = new Set([targetId]), upEdges = new Set();
+  let changed = true;
+  while (changed) {
+    changed = false;
+    GRAPH.edges.forEach((e, idx) => {
+      if (upNodes.has(e.to.id) && !upNodes.has(e.from.id)) {
+        upNodes.add(e.from.id);
+        upEdges.add(idx);
+        changed = true;
+      }
+    });
+  }
+
+  const dnNodes = new Set([targetId]), dnEdges = new Set();
+  changed = true;
+  while (changed) {
+    changed = false;
+    GRAPH.edges.forEach((e, idx) => {
+      if (dnNodes.has(e.from.id) && !dnNodes.has(e.to.id)) {
+        dnNodes.add(e.to.id);
+        dnEdges.add(idx);
+        changed = true;
+      }
+    });
+  }
+
+  return {
+    activeNodes: new Set([...upNodes, ...dnNodes]),
+    activeEdgeIdxs: new Set([...upEdges, ...dnEdges])
+  };
+}
+
+function drawGraph() {
+  const canvas = document.getElementById('graphCanvas');
+  if (!canvas || VIEW_MODE !== 'graph') return;
+  const ctx = canvas.getContext('2d');
+  const dpr = window.devicePixelRatio || 1;
+  const w = canvas.parentElement.clientWidth;
+  const h = canvas.parentElement.clientHeight;
+
+  canvas.width = w * dpr;
+  canvas.height = h * dpr;
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  ctx.clearRect(0, 0, w, h);
+
+  ctx.save();
+  ctx.translate(GRAPH.panX, GRAPH.panY);
+  ctx.scale(GRAPH.zoom, GRAPH.zoom);
+
+  const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+  const lineage = FOCUS_NODE_ID ? getLineageInfo(FOCUS_NODE_ID) : null;
+
+  // Локации с предупреждениями (при активном тумблере)
+  const auditLocs = SHOW_WARNS_ONLY ? new Set(MODEL.audit.flatMap(a => {
+    return a.obj.split(/→|·/).map(s => s.trim());
+  })) : null;
+
+  // 1. Рисуем связи (рёбра)
+  GRAPH.edges.forEach((e, idx) => {
+    const isDirectActive = lineage ? lineage.activeEdgeIdxs.has(idx) : true;
+    const matchesAudit = !auditLocs || auditLocs.has(e.from.id) || auditLocs.has(e.to.id);
+    const isVisible = isDirectActive && matchesAudit;
+
+    const sx = e.from.x + e.from.w;
+    const sy = e.from.y + e.from.h / 2;
+    const ex = e.to.x;
+    const ey = e.to.y + e.to.h / 2;
+    const dx = Math.max(Math.abs(sx - ex) * 0.48, 28);
+
+    ctx.beginPath();
+    ctx.moveTo(sx, sy);
+    ctx.bezierCurveTo(sx + dx, sy, ex - dx, ey, ex, ey);
+
+    if (lineage) {
+      if (isVisible) {
+        ctx.strokeStyle = isDark ? '#a846ff' : '#9000ff';
+        ctx.lineWidth = 2.4;
+      } else {
+        // Сильно затенённая линия для несвязанных рёбер
+        ctx.strokeStyle = isDark ? '#23232f' : '#e6e6ee';
+        ctx.lineWidth = 1;
+      }
+    } else {
+      ctx.strokeStyle = isDark ? '#3d3e52' : '#c8cad6';
+      ctx.lineWidth = 1.3;
+    }
+    ctx.stroke();
+
+    // Стрелочка направления
+    const aL = isVisible && lineage ? 7 : 5;
+    const aW = isVisible && lineage ? 4 : 3;
+    ctx.fillStyle = ctx.strokeStyle;
+    ctx.beginPath();
+    ctx.moveTo(ex, ey);
+    ctx.lineTo(ex - aL, ey - aW);
+    ctx.lineTo(ex - aL + 1, ey);
+    ctx.lineTo(ex - aL, ey + aW);
+    ctx.closePath();
+    ctx.fill();
+
+    // Подпись ребра (плашка-чип)
+    if (GRAPH.zoom > 0.65 && isVisible) {
+      const mx = (sx + ex) / 2;
+      const my = (sy + ey) / 2;
+      ctx.font = '600 9.5px Open Sans, sans-serif';
+      const tw = ctx.measureText(e.label).width + 10;
+      
+      ctx.fillStyle = isDark ? '#22222c' : '#ffffff';
+      ctx.beginPath();
+      ctx.roundRect(mx - tw / 2, my - 8, tw, 16, 4);
+      ctx.fill();
+
+      ctx.strokeStyle = (lineage && isVisible) ? (isDark ? '#a846ff' : '#9000ff') : (isDark ? '#383849' : '#dedce5');
+      ctx.lineWidth = 1;
+      ctx.stroke();
+
+      ctx.fillStyle = (lineage && isVisible) ? (isDark ? '#d79aff' : '#9000ff') : (isDark ? '#c4c6d4' : '#444647');
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(e.label, mx, my);
+    }
+  });
+
+  // 2. Рисуем узлы
+  GRAPH.nodes.forEach(n => {
+    const isTarget = (FOCUS_NODE_ID === n.id);
+    const isChainActive = lineage ? lineage.activeNodes.has(n.id) : true;
+    const matchesAudit = !auditLocs || auditLocs.has(n.id);
+    const isNodeHighlighted = isChainActive && matchesAudit;
+
+    if (lineage && !isNodeHighlighted) {
+      // ════════════ ЗАТЕНЁННЫЙ УЗЕЛ (НЕ В ФОКУСЕ) ════════════
+      ctx.fillStyle = isDark ? '#1d1d25' : '#f9f9fb';
+      ctx.beginPath();
+      ctx.roundRect(n.x, n.y, n.w, n.h, 5);
+      ctx.fill();
+
+      ctx.strokeStyle = isDark ? '#292936' : '#e7e7ee';
+      ctx.lineWidth = 1;
+      ctx.stroke();
+
+      // Мягкий, едва заметный серый текст
+      ctx.fillStyle = isDark ? '#434354' : '#b8b9c6';
+      ctx.font = '600 11px Open Sans, sans-serif';
+      ctx.textAlign = 'left';
+      ctx.textBaseline = 'alphabetic';
+      const text = n.label.length > 13 ? n.label.slice(0, 12) + '…' : n.label;
+      ctx.fillText(text, n.x + 10, n.y + 18);
+
+      ctx.font = '400 9.5px Open Sans, sans-serif';
+      ctx.fillStyle = isDark ? '#383846' : '#c8c9d4';
+      ctx.fillText(n.cat, n.x + 10, n.y + 31);
+      return;
+    }
+
+    // ════════════ АКТИВНЫЙ / СВЯЗАННЫЙ УЗЕЛ ════════════
+    ctx.fillStyle = isDark ? '#22222c' : '#ffffff';
+    ctx.beginPath();
+    ctx.roundRect(n.x, n.y, n.w, n.h, 5);
+    ctx.fill();
+
+    if (isTarget) {
+      ctx.strokeStyle = isDark ? '#a846ff' : '#9000ff';
+      ctx.lineWidth = 2.4;
+    } else if (lineage && isNodeHighlighted) {
+      ctx.strokeStyle = isDark ? '#a846ff' : '#9000ff';
+      ctx.lineWidth = 1.8;
+    } else {
+      ctx.strokeStyle = isDark ? '#383849' : '#dedce5';
+      ctx.lineWidth = 1;
+    }
+    ctx.stroke();
+
+    // Маркер категории слева
+    ctx.fillStyle = n.color;
+    ctx.fillRect(n.x, n.y + 4, 3.5, n.h - 8);
+
+    // Иконка
+    ctx.font = '12px Open Sans, sans-serif';
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'alphabetic';
+    ctx.fillText(n.icon, n.x + 8, n.y + 24);
+
+    // Заголовок
+    ctx.fillStyle = isDark ? '#f1f2f6' : '#212529';
+    ctx.font = '700 11px Open Sans, sans-serif';
+    const text = n.label.length > 13 ? n.label.slice(0, 12) + '…' : n.label;
+    ctx.fillText(text, n.x + 26, n.y + 17);
+
+    // Категория
+    ctx.fillStyle = isDark ? '#8f92a4' : '#8c9096';
+    ctx.font = '400 9.5px Open Sans, sans-serif';
+    ctx.fillText(n.cat, n.x + 26, n.y + 31);
+  });
+
+  ctx.restore();
+}
+/* ═══════════════ 6. РЕЖИМ МАТРИЦЫ ═══════════════ */
+function renderMatrixView() {
+  const host = document.getElementById('matrixTableHost');
+  const { tlane } = getFilteredDataset();
+  
+  const fromLocs = [...new Set(tlane.map(t => t.locfr))].sort();
+  const toLocs = [...new Set(tlane.map(t => t.locto))].sort();
+
+  if (!fromLocs.length || !toLocs.length) {
+    host.innerHTML = '<div style="padding:20px;color:var(--scp-text-3)">Нет транспортных связей под текущими фильтрами</div>';
+    return;
+  }
+
+  const mat = {};
+  tlane.forEach(t => {
+    const k = `${t.locfr}__${t.locto}`;
+    if (!mat[k]) mat[k] = [];
+    mat[k].push(t);
+  });
+
+  let html = '<table class="matrix-tbl"><thead><tr><th>Откуда \\ Куда</th>';
+  toLocs.forEach(to => html += `<th>${to}</th>`);
+  html += '</tr></thead><tbody>';
+
+  fromLocs.forEach(fr => {
+    html += `<tr><td style="font-weight:600;background:var(--scp-surface-2);text-align:left">${fr}</td>`;
+    toLocs.forEach(to => {
+      const lanes = mat[`${fr}__${to}`];
+      if (lanes && lanes.length) {
+        const title = lanes.map(l => `${l.item} (${l.mot}) - ${l.leadtime}дн`).join('\n');
+        html += `<td class="matrix-cell-active" title="${title}">${lanes.length} плеч</td>`;
+      } else {
+        html += `<td style="color:var(--scp-text-dis)">—</td>`;
+      }
+    });
+    html += '</tr>';
+  });
+  html += '</tbody></table>';
+
+  host.innerHTML = html;
+}
+
+/* ═══════════════ 7. ТАБЛИЦЫ И ИНТЕРФЕЙС ═══════════════ */
+function renderSidebarNodes() {
+  const treeEl = document.getElementById('sbTree');
+  const q = (document.getElementById('sbSearchInput').value || '').toLowerCase();
+  
+  const allLocs = [...new Set([...MODEL.sku.map(s=>s.loc), ...MODEL.tlane.flatMap(t=>[t.locfr, t.locto])])].sort();
+  
+  const groups = {};
+  allLocs.forEach(loc => {
+    if (q && !loc.toLowerCase().includes(q)) return;
+    const catInfo = getNodeCategory(loc);
+    if (!groups[catInfo.cat]) groups[catInfo.cat] = [];
+    groups[catInfo.cat].push({ id: loc, ...catInfo });
+  });
+
+  let html = '';
+  Object.keys(groups).forEach(cat => {
+    html += `<div class="sb-grp-title"><span>${cat}</span><span>${groups[cat].length}</span></div>`;
+    groups[cat].forEach(n => {
+      const isChecked = FILTERS.nodes.includes(n.id);
+      html += `<label class="sb-item ${isChecked ? 'on' : ''}">
+        <input type="checkbox" ${isChecked ? 'checked' : ''} onchange="toggleFilterNode('${n.id}')">
+        <span class="sb-item-icon">${n.icon}</span>
+        <span>${n.id}</span>
+      </label>`;
+    });
+  });
+
+  treeEl.innerHTML = html || '<div style="padding:16px;text-align:center;color:var(--scp-text-3)">Узлов не найдено</div>';
+}
+
+function renderFilterPills() {
+  // 1. Продукты
+  const allItems = [...new Set(MODEL.sku.map(s => s.item))].sort();
+  const listItemsEl = document.getElementById('listItems');
+  const qI = (document.getElementById('qItem').value || '').toLowerCase();
+  
+  let iHtml = '';
+  allItems.filter(it => !qI || it.toLowerCase().includes(qI)).forEach(it => {
+    const on = FILTERS.items.includes(it);
+    iHtml += `<label class="pop-item ${on ? 'on' : ''}">
+      <input type="checkbox" ${on ? 'checked' : ''} onchange="toggleFilterItem('${it}')">
+      <span>${it}</span>
+    </label>`;
+  });
+  listItemsEl.innerHTML = iHtml || '<div style="padding:8px;color:var(--scp-text-3)">Не найдено</div>';
+  
+  const bI = document.getElementById('badgeItem');
+  bI.textContent = FILTERS.items.length;
+  bI.classList.toggle('hide', !FILTERS.items.length);
+  document.getElementById('lblCurItem').textContent = FILTERS.items.length === 0 ? 'Продукты: Все' : (FILTERS.items.length === 1 ? FILTERS.items[0] : `Продукты (${FILTERS.items.length})`);
+  document.getElementById('bItemPop').classList.toggle('on', !!FILTERS.items.length);
+
+  // 2. Рецептуры PDS
+  const allPds = [...new Set(MODEL.prodsource.map(p => p.prodsource))].sort();
+  const listPdsEl = document.getElementById('listPds');
+  const qP = (document.getElementById('qPds').value || '').toLowerCase();
+
+  let pHtml = '';
+  allPds.filter(p => !qP || p.toLowerCase().includes(qP)).forEach(p => {
+    const on = FILTERS.pds.includes(p);
+    pHtml += `<label class="pop-item ${on ? 'on' : ''}">
+      <input type="checkbox" ${on ? 'checked' : ''} onchange="toggleFilterPds('${p}')">
+      <span>${p}</span>
+    </label>`;
+  });
+  listPdsEl.innerHTML = pHtml || '<div style="padding:8px;color:var(--scp-text-3)">Не найдено</div>';
+
+  const bP = document.getElementById('badgePds');
+  bP.textContent = FILTERS.pds.length;
+  bP.classList.toggle('hide', !FILTERS.pds.length);
+  document.getElementById('lblCurPds').textContent = FILTERS.pds.length === 0 ? 'Спецификации: Все' : (FILTERS.pds.length === 1 ? FILTERS.pds[0].slice(0,12)+'…' : `Спецификации (${FILTERS.pds.length})`);
+  document.getElementById('bPdsPop').classList.toggle('on', !!FILTERS.pds.length);
+
+  // Кнопка сброса
+  const hasFilters = FILTERS.items.length || FILTERS.pds.length || FILTERS.nodes.length || FOCUS_NODE_ID;
+  document.getElementById('bResetAllFilters').disabled = !hasFilters;
+}
+
+function renderBottomTable() {
+  const body = document.getElementById('bsBody');
+  const { sku, tlane, res, pds } = getFilteredDataset();
+
+  document.getElementById('cntSku').textContent = sku.length;
+  document.getElementById('cntTlane').textContent = tlane.length;
+  document.getElementById('cntRes').textContent = res.length;
+  document.getElementById('cntPds').textContent = pds.length;
+  document.getElementById('cntAudit').textContent = MODEL.audit.length;
+
+  let html = '';
+  if (ACTIVE_TAB === 'sku') {
+    html = `<table><thead><tr><th>Продукт (item)</th><th>Локация (loc)</th><th>Складской ресурс</th><th>Мин. партия</th><th>Макс. партия</th></tr></thead><tbody>`;
+    sku.forEach(r => {
+      html += `<tr><td><b>${r.item}</b></td><td>${r.loc}</td><td>${r.res || '—'}</td><td>${r.minlotsize || '—'}</td><td>${r.maxlotsize || '—'}</td></tr>`;
+    });
+    html += '</tbody></table>';
+  } else if (ACTIVE_TAB === 'tlane') {
+    html = `<table><thead><tr><th>Продукт</th><th>Откуда (locfr)</th><th>Куда (locto)</th><th>Транспорт (mot)</th><th>Срок доставки</th></tr></thead><tbody>`;
+    tlane.forEach(r => {
+      html += `<tr><td><b>${r.item}</b></td><td>${r.locfr}</td><td>${r.locto}</td><td><span class="tag-ok">${r.mot}</span></td><td>${r.leadtime} дн.</td></tr>`;
+    });
+    html += '</tbody></table>';
+  } else if (ACTIVE_TAB === 'res') {
+    html = `<table><thead><tr><th>Код ресурса</th><th>Локация</th><th>Наименование / Передел</th><th>Тип</th><th>Ед. изм.</th><th>Мощность/сут</th></tr></thead><tbody>`;
+    res.forEach(r => {
+      html += `<tr><td><b>${r.id}</b></td><td>${r.loc}</td><td>${r.name}</td><td>Ур. ${r.type}</td><td>${r.capuom}</td><td>${r.capacity}</td></tr>`;
+    });
+    html += '</tbody></table>';
+  } else if (ACTIVE_TAB === 'prodsource') {
+    html = `<table><thead><tr><th>Рецепт / PDS</th><th>Выпускаемый продукт</th><th>Завод</th><th>Версия</th><th>Приоритет</th><th>Норма</th></tr></thead><tbody>`;
+    pds.forEach(r => {
+      html += `<tr><td><code>${r.prodsource}</code></td><td><b>${r.item}</b></td><td>${r.loc}</td><td>${r.prodver}</td><td>${r.prio}</td><td>${r.outputqty}</td></tr>`;
+    });
+    html += '</tbody></table>';
+  } else if (ACTIVE_TAB === 'audit') {
+    html = `<table><thead><tr><th>Уровень</th><th>Категория</th><th>Объект</th><th>Суть проверки</th></tr></thead><tbody>`;
+    MODEL.audit.forEach(r => {
+      html += `<tr><td><span class="tag-${r.type}">${r.type === 'err' ? 'Критично' : 'Внимание'}</span></td><td>${r.cat}</td><td><b>${r.obj}</b></td><td>${r.msg}</td></tr>`;
+    });
+    html += '</tbody></table>';
+  }
+
+  body.innerHTML = html || '<div style="padding:16px;text-align:center;color:var(--scp-text-3)">Данные отсутствуют под выбранными фильтрами</div>';
+}
+
+function refreshUI() {
+  buildGraphTopology();
+  renderSidebarNodes();
+  renderFilterPills();
+  renderBottomTable();
+  if (VIEW_MODE === 'graph') {
+    drawGraph();
+  } else {
+    renderMatrixView();
+  }
+
+  // Обновление плашки фокуса
+  const fWrap = document.getElementById('focusPillWrap');
+  if (FOCUS_NODE_ID) {
+    fWrap.style.display = 'block';
+    document.getElementById('focusPillText').textContent = `Фокус: ${FOCUS_NODE_ID}`;
+  } else {
+    fWrap.style.display = 'none';
+  }
+}
+
+/* ═══════════════ 8. ХЕНДЛЕРЫ ФИЛЬТРОВ И СОБЫТИЙ ═══════════════ */
+function toggleFilterNode(id) {
+  const i = FILTERS.nodes.indexOf(id);
+  if (i < 0) FILTERS.nodes.push(id); else FILTERS.nodes.splice(i, 1);
+  refreshUI();
+}
+function toggleFilterItem(item) {
+  const i = FILTERS.items.indexOf(item);
+  if (i < 0) FILTERS.items.push(item); else FILTERS.items.splice(i, 1);
+  refreshUI();
+}
+function toggleFilterPds(pds) {
+  const i = FILTERS.pds.indexOf(pds);
+  if (i < 0) FILTERS.pds.push(pds); else FILTERS.pds.splice(i, 1);
+  refreshUI();
+}
+
+// Дропдауны фильтров
+document.getElementById('bItemPop').onclick = (e) => {
+  e.stopPropagation();
+  document.getElementById('popPdsWrap').classList.remove('open');
+  document.getElementById('popItemsWrap').classList.toggle('open');
+};
+document.getElementById('bPdsPop').onclick = (e) => {
+  e.stopPropagation();
+  document.getElementById('popItemsWrap').classList.remove('open');
+  document.getElementById('popPdsWrap').classList.toggle('open');
+};
+document.addEventListener('click', () => {
+  document.getElementById('popItemsWrap').classList.remove('open');
+  document.getElementById('popPdsWrap').classList.remove('open');
+});
+document.querySelectorAll('.pop-menu').forEach(m => m.onclick = e => e.stopPropagation());
+
+document.getElementById('btnItemAll').onclick = () => { FILTERS.items = [...new Set(MODEL.sku.map(s => s.item))]; refreshUI(); };
+document.getElementById('btnItemClr').onclick = () => { FILTERS.items = []; refreshUI(); };
+document.getElementById('btnPdsAll').onclick = () => { FILTERS.pds = [...new Set(MODEL.prodsource.map(p => p.prodsource))]; refreshUI(); };
+document.getElementById('btnPdsClr').onclick = () => { FILTERS.pds = []; refreshUI(); };
+document.getElementById('btnNodesClr').onclick = () => { FILTERS.nodes = []; refreshUI(); };
+
+document.getElementById('bResetAllFilters').onclick = () => {
+  FILTERS.items = [];
+  FILTERS.pds = [];
+  FILTERS.nodes = [];
+  FOCUS_NODE_ID = null;
+  refreshUI();
+};
+document.getElementById('bClearFocus').onclick = () => {
+  FOCUS_NODE_ID = null;
+  refreshUI();
+};
+
+document.getElementById('qItem').oninput = renderFilterPills;
+document.getElementById('qPds').oninput = renderFilterPills;
+document.getElementById('sbSearchInput').oninput = renderSidebarNodes;
+
+// Переключение режимов Граф / Матрица
+document.getElementById('btnModeGraph').onclick = () => {
+  VIEW_MODE = 'graph';
+  document.getElementById('btnModeGraph').classList.add('on');
+  document.getElementById('btnModeMatrix').classList.remove('on');
+  document.getElementById('graphWrap').style.display = 'block';
+  document.getElementById('matrixWrap').style.display = 'none';
+  document.getElementById('gToolbar').style.display = 'flex';
+  refreshUI();
+};
+document.getElementById('btnModeMatrix').onclick = () => {
+  VIEW_MODE = 'matrix';
+  document.getElementById('btnModeMatrix').classList.add('on');
+  document.getElementById('btnModeGraph').classList.remove('on');
+  document.getElementById('graphWrap').style.display = 'none';
+  document.getElementById('matrixWrap').style.display = 'block';
+  document.getElementById('gToolbar').style.display = 'none';
+  refreshUI();
+};
+
+// Загрузка файлов
+document.getElementById('bUpload').onclick = () => document.getElementById('fInput').click();
+document.getElementById('fInput').onchange = (e) => {
+  const files = Array.from(e.target.files);
+  if (!files.length) return;
+
+  files.forEach(file => {
+    const reader = new FileReader();
+    reader.onload = (evt) => {
+      const wb = XLSX.read(evt.target.result, { type: 'array' });
+      parseWorkbookSheets(wb);
+    };
+    reader.readAsArrayBuffer(file);
+  });
+  e.target.value = '';
+};
+
+// Переключатели нижних табов
+document.querySelectorAll('.bs-tab').forEach(btn => {
+  btn.onclick = () => {
+    document.querySelectorAll('.bs-tab').forEach(b => b.classList.remove('on'));
+    btn.classList.add('on');
+    ACTIVE_TAB = btn.dataset.tab;
+    renderBottomTable();
+  };
+});
+
+// Тема
+document.getElementById('bTheme').onclick = () => {
+  const cur = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+  document.documentElement.setAttribute('data-theme', cur);
+  localStorage.setItem('inplan_theme', cur);
+  drawGraph();
+};
+
+// Логика сворачивания / раскрытия меню узлов сети
+const toggleSidebar = () => {
+  const sb = document.getElementById('sidebar');
+  const isMin = sb.classList.toggle('min');
+  document.getElementById('bFloatingRestoreSb').style.display = isMin ? 'block' : 'none';
+  setTimeout(drawGraph, 220);
+};
+
+document.getElementById('bToggleSb').onclick = toggleSidebar;
+document.getElementById('bHdrToggleSb').onclick = toggleSidebar;
+document.getElementById('bFloatingRestoreSb').onclick = toggleSidebar;
+
+// Переключатель "Предупреждения"
+document.getElementById('tglWarns').onclick = () => {
+  SHOW_WARNS_ONLY = !SHOW_WARNS_ONLY;
+  document.getElementById('tglWarns').classList.toggle('on', SHOW_WARNS_ONLY);
+  if (SHOW_WARNS_ONLY) {
+    // Автоматически переключаем нижнюю вкладку на Предупреждения
+    document.querySelectorAll('.bs-tab').forEach(b => b.classList.remove('on'));
+    const auditTabBtn = document.querySelector('.bs-tab[data-tab="audit"]');
+    if (auditTabBtn) auditTabBtn.classList.add('on');
+    ACTIVE_TAB = 'audit';
+  }
+  refreshUI();
+};
+
+// Drag & Zoom графа + Выбор объекта и сброс кликом в пустоту
+const canvas = document.getElementById('graphCanvas');
+let clickStartTime = 0;
+let dragOccurred = false;
+
+canvas.onmousedown = (e) => {
+  clickStartTime = Date.now();
+  dragOccurred = false;
+  const rect = canvas.getBoundingClientRect();
+  const mx = (e.clientX - rect.left - GRAPH.panX) / GRAPH.zoom;
+  const my = (e.clientY - rect.top - GRAPH.panY) / GRAPH.zoom;
+
+  const hit = GRAPH.nodes.slice().reverse().find(n => mx >= n.x && mx <= n.x + n.w && my >= n.y && my <= n.y + n.h);
+  if (hit) {
+    GRAPH.dragNode = hit;
+  } else {
+    GRAPH.isDragging = true;
+    GRAPH.startX = e.clientX - GRAPH.panX;
+    GRAPH.startY = e.clientY - GRAPH.panY;
+  }
+};
+
+window.onmousemove = (e) => {
+  if (GRAPH.dragNode) {
+    dragOccurred = true;
+    GRAPH.dragNode.x += e.movementX / GRAPH.zoom;
+    GRAPH.dragNode.y += e.movementY / GRAPH.zoom;
+    drawGraph();
+  } else if (GRAPH.isDragging) {
+    dragOccurred = true;
+    GRAPH.panX = e.clientX - GRAPH.startX;
+    GRAPH.panY = e.clientY - GRAPH.startY;
+    drawGraph();
+  }
+};
+
+window.onmouseup = (e) => {
+  const rect = canvas.getBoundingClientRect();
+  const mx = (e.clientX - rect.left - GRAPH.panX) / GRAPH.zoom;
+  const my = (e.clientY - rect.top - GRAPH.panY) / GRAPH.zoom;
+
+  // Если был быстрый клик без перетаскивания
+  if (Date.now() - clickStartTime < 220 && !dragOccurred) {
+    const hit = GRAPH.nodes.slice().reverse().find(n => mx >= n.x && mx <= n.x + n.w && my >= n.y && my <= n.y + n.h);
+    if (hit) {
+      FOCUS_NODE_ID = (FOCUS_NODE_ID === hit.id) ? null : hit.id;
+    } else {
+      // Клик в пустое место холста — сбрасываем фокус
+      FOCUS_NODE_ID = null;
+    }
+    refreshUI();
+  }
+
+  GRAPH.isDragging = false;
+  GRAPH.dragNode = null;
+};
+
+canvas.onwheel = (e) => {
+  e.preventDefault();
+  const factor = e.deltaY < 0 ? 1.08 : 0.92;
+  GRAPH.zoom = Math.max(0.25, Math.min(2.5, GRAPH.zoom * factor));
+  drawGraph();
+};
+
+// Ресайзер нижней панели
+const resizer = document.getElementById('bsResizer');
+let isResizing = false;
+resizer.onmousedown = () => isResizing = true;
+window.addEventListener('mousemove', (e) => {
+  if (isResizing) {
+    const h = window.innerHeight - e.clientY;
+    if (h > 90 && h < window.innerHeight * 0.7) {
+      document.getElementById('bottomSheet').style.height = h + 'px';
+      drawGraph();
+    }
+  }
+});
+window.addEventListener('mouseup', () => isResizing = false);
+window.onresize = drawGraph;
+
+// Инициализация
+const savedTheme = localStorage.getItem('inplan_theme') || 'light';
+document.documentElement.setAttribute('data-theme', savedTheme);
+
+MODEL.sku = [...SEED_DATA.sku];
+MODEL.res = [...SEED_DATA.res];
+MODEL.prodsource = [...SEED_DATA.prodsource];
+MODEL.tlane = [...SEED_DATA.tlane];
+runModelAudit();
+refreshUI();
+</script>
+</body>
+</html>
