@@ -811,14 +811,28 @@ function parseWorkbookSheets(wb) {
     capacity: parseFloat(r.defaultbucketcapacity || r.capacity || 24)
   })).filter(x => x.id);
 
-  if (rawPds) MODEL.prodsource = rawPds.map(r => ({
-    prodsource: r.prodsource || r['Рецепт'] || r.id || '',
-    item: r.item || r['Продукт'] || '',
-    loc: r.loc || r['Локация'] || '',
-    prodver: r.prodver || r['Версия'] || '',
-    prio: parseInt(r.prodsourceprio || 1),
-    outputqty: parseFloat(r.outputqty || 1)
-  })).filter(x => x.item && x.loc);
+  if (rawPds) {
+    // Нормализуем заголовки строк: пробелы, двоеточия, регистр не важны
+    const pick = (r, keys) => {
+      for (const k of keys) {
+        const v = r[normalizeKey(k)];
+        if (v !== undefined && v !== null && String(v).trim() !== '') return v;
+      }
+      return '';
+    };
+    MODEL.prodsource = rawPds.map(raw => {
+      const r = {};
+      Object.keys(raw).forEach(k => { r[normalizeKey(k)] = raw[k]; });
+      return {
+        prodsource: pick(r, ['prodsource', 'Рецепт', 'Производственный источник поставки', 'id']),
+        item: pick(r, ['item', 'Продукт', 'Продукт: системный код']),
+        loc: pick(r, ['loc', 'Локация', 'Локация: системный код']),
+        prodver: pick(r, ['prodver', 'Версия', 'Вариант изготовления: системный код']),
+        prio: parseInt(pick(r, ['prodsourceprio', 'Приоритет']) || 1) || 1,
+        outputqty: parseFloat(pick(r, ['outputqty', 'Базисное количество']) || 1) || 1
+      };
+    }).filter(x => x.item && x.loc);
+  }
 
   if (rawTlane) MODEL.tlane = rawTlane.map(r => ({
     item: r.item || r['Продукт'] || '',
