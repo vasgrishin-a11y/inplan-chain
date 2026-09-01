@@ -769,6 +769,15 @@ function normalizeKey(k) {
 }
 
 function parseWorkbookSheets(wb) {
+  // При первой пользовательской загрузке очищаем демо-набор
+  if (parseWorkbookSheets._wipeNext) {
+    MODEL.sku = [];
+    MODEL.res = [];
+    MODEL.prodsource = [];
+    MODEL.tlane = [];
+    parseWorkbookSheets._wipeNext = false;
+  }
+
   const sheetMap = {};
   wb.SheetNames.forEach(n => sheetMap[normalizeKey(n)] = n);
 
@@ -831,12 +840,13 @@ function parseWorkbookSheets(wb) {
 function runModelAudit() {
   MODEL.audit = [];
   const knownLocs = new Set([...MODEL.sku.map(s => s.loc), ...MODEL.res.map(r => r.loc)]);
+  const hasMaster = MODEL.sku.length > 0 || MODEL.res.length > 0;
 
   MODEL.tlane.forEach(t => {
-    if (t.locfr && !knownLocs.has(t.locfr)) {
+    if (t.locfr && hasMaster && !knownLocs.has(t.locfr)) {
       MODEL.audit.push({ type: 'err', cat: 'Транспорт', obj: `${t.locfr} → ${t.locto}`, msg: `Локация отправления "${t.locfr}" не описана в матрице SKU/Res` });
     }
-    if (t.locto && !knownLocs.has(t.locto)) {
+    if (t.locto && hasMaster && !knownLocs.has(t.locto)) {
       MODEL.audit.push({ type: 'err', cat: 'Транспорт', obj: `${t.locfr} → ${t.locto}`, msg: `Локация назначения "${t.locto}" не описана в матрице SKU/Res` });
     }
   });
@@ -1230,8 +1240,12 @@ function renderSidebarNodes() {
 }
 
 function renderFilterPills() {
-  // 1. Продукты
-  const allItems = [...new Set(MODEL.sku.map(s => s.item))].sort();
+  // 1. Продукты — собираем из всех источников данных
+  const allItems = [...new Set([
+    ...MODEL.sku.map(s => s.item),
+    ...MODEL.tlane.map(t => t.item),
+    ...MODEL.prodsource.map(p => p.item)
+  ])].filter(Boolean).sort();
   const listItemsEl = document.getElementById('listItems');
   const qI = (document.getElementById('qItem').value || '').toLowerCase();
   
@@ -1264,7 +1278,12 @@ function renderFilterPills() {
       <span>${p}</span>
     </label>`;
   });
-  listPdsEl.innerHTML = pHtml || '<div style="padding:8px;color:var(--scp-text-3)">Не найдено</div>';
+  if (!pHtml) {
+    pHtml = MODEL.prodsource.length
+      ? '<div style="padding:8px;color:var(--scp-text-3)">Не найдено</div>'
+      : '<div style="padding:8px;color:var(--scp-text-3)">Файл prodsource не загружен — список спецификаций пуст</div>';
+  }
+  listPdsEl.innerHTML = pHtml;
 
   const bP = document.getElementById('badgePds');
   bP.textContent = FILTERS.pds.length;
@@ -1425,6 +1444,9 @@ document.getElementById('bUpload').onclick = () => document.getElementById('fInp
 document.getElementById('fInput').onchange = (e) => {
   const files = Array.from(e.target.files);
   if (!files.length) return;
+
+  // Первый распарсенный файл затирает демо-набор SEED_DATA
+  parseWorkbookSheets._wipeNext = true;
 
   files.forEach(file => {
     const reader = new FileReader();
