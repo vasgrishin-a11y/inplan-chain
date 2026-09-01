@@ -1263,8 +1263,13 @@ function renderFilterPills() {
   const listItemsEl = document.getElementById('listItems');
   const qI = (document.getElementById('qItem').value || '').toLowerCase();
   
+  // Кросс-фильтрация: при выбранных спецификациях показываем только выпускаемые ими продукты
+  const visibleItems = FILTERS.pds.length
+    ? allItems.filter(it => getRelatedItemsSet(FILTERS.pds).has(it))
+    : allItems;
+
   let iHtml = '';
-  allItems.filter(it => !qI || it.toLowerCase().includes(qI)).forEach(it => {
+  visibleItems.filter(it => !qI || it.toLowerCase().includes(qI)).forEach(it => {
     const on = FILTERS.items.includes(it);
     iHtml += `<label class="pop-item ${on ? 'on' : ''}">
       <input type="checkbox" ${on ? 'checked' : ''} onchange="toggleFilterItem('${it}')">
@@ -1284,8 +1289,13 @@ function renderFilterPills() {
   const listPdsEl = document.getElementById('listPds');
   const qP = (document.getElementById('qPds').value || '').toLowerCase();
 
+  // Кросс-фильтрация: при выбранных продуктах показываем только их спецификации
+  const visiblePds = FILTERS.items.length
+    ? (() => { const rel = getRelatedPdsSet(FILTERS.items); return allPds.filter(p => rel.has(p)); })()
+    : allPds;
+
   let pHtml = '';
-  allPds.filter(p => !qP || p.toLowerCase().includes(qP)).forEach(p => {
+  visiblePds.filter(p => !qP || p.toLowerCase().includes(qP)).forEach(p => {
     const on = FILTERS.pds.includes(p);
     pHtml += `<label class="pop-item ${on ? 'on' : ''}">
       <input type="checkbox" ${on ? 'checked' : ''} onchange="toggleFilterPds('${p}')">
@@ -1383,14 +1393,36 @@ function toggleFilterNode(id) {
   if (i < 0) FILTERS.nodes.push(id); else FILTERS.nodes.splice(i, 1);
   refreshUI();
 }
+/* Кросс-фильтрация Продукты <-> Спецификации */
+// Множество спецификаций (PDS), выпускающих хотя бы один из переданных продуктов
+function getRelatedPdsSet(items) {
+  const set = new Set(items);
+  return new Set(MODEL.prodsource.filter(p => set.has(p.item)).map(p => p.prodsource));
+}
+// Множество продуктов, выпускаемых хотя бы одной из переданных спецификаций
+function getRelatedItemsSet(pds) {
+  const set = new Set(pds);
+  return new Set(MODEL.prodsource.filter(p => set.has(p.prodsource)).map(p => p.item));
+}
+
 function toggleFilterItem(item) {
   const i = FILTERS.items.indexOf(item);
   if (i < 0) FILTERS.items.push(item); else FILTERS.items.splice(i, 1);
+  // Кросс-фильтрация: оставляем только спецификации, выпускающие выбранные продукты
+  if (FILTERS.items.length) {
+    const rel = getRelatedPdsSet(FILTERS.items);
+    FILTERS.pds = FILTERS.pds.filter(p => rel.has(p));
+  }
   refreshUI();
 }
 function toggleFilterPds(pds) {
   const i = FILTERS.pds.indexOf(pds);
   if (i < 0) FILTERS.pds.push(pds); else FILTERS.pds.splice(i, 1);
+  // Кросс-фильтрация: оставляем только продукты, выпускаемые выбранными спецификациями
+  if (FILTERS.pds.length) {
+    const rel = getRelatedItemsSet(FILTERS.pds);
+    FILTERS.items = FILTERS.items.filter(it => rel.has(it));
+  }
   refreshUI();
 }
 
@@ -1411,9 +1443,32 @@ document.addEventListener('click', () => {
 });
 document.querySelectorAll('.pop-menu').forEach(m => m.onclick = e => e.stopPropagation());
 
-document.getElementById('btnItemAll').onclick = () => { FILTERS.items = [...new Set(MODEL.sku.map(s => s.item))]; refreshUI(); };
+// Полная вселенная продуктов — из всех источников (в старой версии tlane-продукты терялись)
+const getAllItemsUniverse = () => [...new Set([
+  ...MODEL.sku.map(s => s.item),
+  ...MODEL.tlane.map(t => t.item),
+  ...MODEL.prodsource.map(p => p.item)
+])].filter(Boolean);
+
+document.getElementById('btnItemAll').onclick = () => {
+  FILTERS.items = getAllItemsUniverse();
+  // Кросс-фильтрация: спецификации сужаются до выпускающих выбранные продукты
+  if (FILTERS.items.length) {
+    const rel = getRelatedPdsSet(FILTERS.items);
+    FILTERS.pds = FILTERS.pds.filter(p => rel.has(p));
+  }
+  refreshUI();
+};
 document.getElementById('btnItemClr').onclick = () => { FILTERS.items = []; refreshUI(); };
-document.getElementById('btnPdsAll').onclick = () => { FILTERS.pds = [...new Set(MODEL.prodsource.map(p => p.prodsource))]; refreshUI(); };
+document.getElementById('btnPdsAll').onclick = () => {
+  FILTERS.pds = [...new Set(MODEL.prodsource.map(p => p.prodsource))];
+  // Кросс-фильтрация: продукты сужаются до выпускаемых выбранными спецификациями
+  if (FILTERS.pds.length) {
+    const rel = getRelatedItemsSet(FILTERS.pds);
+    FILTERS.items = FILTERS.items.filter(it => rel.has(it));
+  }
+  refreshUI();
+};
 document.getElementById('btnPdsClr').onclick = () => { FILTERS.pds = []; refreshUI(); };
 document.getElementById('btnNodesClr').onclick = () => { FILTERS.nodes = []; refreshUI(); };
 
