@@ -768,6 +768,43 @@ function normalizeKey(k) {
   return String(k || '').trim().toLowerCase().replace(/[^a-zа-я0-9]/g, '');
 }
 
+/* Нормализация заголовков всех листов: регистр, пробелы, двоеточия, скобки не важны */
+function normHeaderRows(rows) {
+  return rows.map(raw => {
+    const r = {};
+    Object.keys(raw).forEach(k => { r[normalizeKey(k)] = raw[k]; });
+    return r;
+  });
+}
+/* Универсальное чтение колонки по списку алиасов (алиасы тоже нормализуются) */
+function pickCol(r, keys) {
+  for (const a of keys) {
+    const v = r[normalizeKey(a)];
+    if (v !== undefined && v !== null && String(v).trim() !== '') return v;
+  }
+  return '';
+}
+const numCol = (v, def = 0) => {
+  const n = parseFloat(String(v === '' || v == null ? '' : v).replace(',', '.'));
+  return isFinite(n) ? n : def;
+};
+
+/* Автодостраивание SKU-матрицы из загруженных плеч (tlane) и рецептур (prodsource):
+   каждая уникальная пара «продукт × локация» становится строкой справочника.
+   Партии неизвестны (0 → в таблице отображается «—»), ресурс — пустой. */
+function deriveSkuFromLoadedData() {
+  const seen = new Set(MODEL.sku.map(s => s.item + '|' + s.loc));
+  const addPair = (item, loc) => {
+    if (!item || !loc) return;
+    const k = String(item) + '|' + String(loc);
+    if (seen.has(k)) return;
+    seen.add(k);
+    MODEL.sku.push({ item: String(item), loc: String(loc), res: '', minlotsize: 0, maxlotsize: 0, derived: true });
+  };
+  MODEL.prodsource.forEach(p => addPair(p.item, p.loc));
+  MODEL.tlane.forEach(t => { addPair(t.item, t.locfr); addPair(t.item, t.locto); });
+}
+
 function parseWorkbookSheets(wb) {
   // При первой пользовательской загрузке очищаем демо-набор
   if (parseWorkbookSheets._wipeNext) {
@@ -794,53 +831,46 @@ function parseWorkbookSheets(wb) {
   const rawPds = getSheetData(['prodsource', 'pds', 'рецепт', 'спецификация']);
   const rawTlane = getSheetData(['tlane', 'transport', 'плечи', 'отношения']);
 
-  if (rawSku) MODEL.sku = rawSku.map(r => ({
-    item: r.item || r['Продукт'] || r['Материал'] || '',
-    loc: r.loc || r['Локация'] || r['Склад'] || '',
-    res: r['Ресурс: код'] || r.res || r['Ресурс'] || '',
-    minlotsize: parseFloat(r.minlotsize || r.min_lot || 0),
-    maxlotsize: parseFloat(r.maxlotsize || r.max_lot || 0)
+  // ── SKU матрица (поддержка составных заголовков вида «Продукт: системный код») ──
+  if (rawSku) MODEL.sku = normHeaderRows(rawSku).map(r => ({
+    item: pickCol(r, ['item', 'Продукт: системный код', 'Продукт', 'Материал: системный код', 'Материал']),
+    loc: pickCol(r, ['loc', 'Локация: системный код', 'Локация', 'Склад']),
+    res: pickCol(r, ['Ресурс: системный код', 'Ресурс: код', 'res', 'Ресурс']),
+    minlotsize: numCol(pickCol(r, ['Минимальная партия', 'minlotsize', 'min_lot'])),
+    maxlotsize: numCol(pickCol(r, ['Максимальная партия', 'maxlotsize', 'max_lot']))
   })).filter(x => x.item && x.loc);
 
-  if (rawRes) MODEL.res = rawRes.map(r => ({
-    id: r['Ресурс'] || r.res || r.id || '',
-    loc: r['Локация: код'] || r.loc || '',
-    name: r['Ресурс: наименование'] || r.name || '',
-    type: String(r['Тип Ресурса'] || r.type || '1'),
-    capuom: r.capuom || 'H',
-    capacity: parseFloat(r.defaultbucketcapacity || r.capacity || 24)
+  // ── Ресурсы и мощности ──
+  if (rawRes) MODEL.res = normHeaderRows(rawRes).map(r => ({
+    id: pickCol(r, ['Ресурс: системный код', 'res', 'Ресурс', 'id']),
+    loc: pickCol(r, ['Локация: системный код', 'loc', 'Локация', 'Завод: системный код']),
+    name: pickCol(r, ['Ресурс: наименование', 'name', 'Наименование ресурса']),
+    type: String(pickCol(r, ['Вид ресурса: наименование', 'Тип Ресурса', 'type', 'Вид ресурса']) || '1'),
+    capuom: pickCol(r, ['capuom', 'ЕИ мощности', 'Ед. изм. мощности']) || 'H',
+    capacity: numCol(pickCol(r, ['defaultbucketcapacity', 'ФРВ Номинальный', 'Доступная мощность (итог)', 'capacity', 'Мощность'])) || 24
   })).filter(x => x.id);
 
-  if (rawPds) {
-    // Нормализуем заголовки строк: пробелы, двоеточия, регистр не важны
-    const pick = (r, keys) => {
-      for (const k of keys) {
-        const v = r[normalizeKey(k)];
-        if (v !== undefined && v !== null && String(v).trim() !== '') return v;
-      }
-      return '';
-    };
-    MODEL.prodsource = rawPds.map(raw => {
-      const r = {};
-      Object.keys(raw).forEach(k => { r[normalizeKey(k)] = raw[k]; });
-      return {
-        prodsource: pick(r, ['prodsource', 'Рецепт', 'Производственный источник поставки', 'id']),
-        item: pick(r, ['item', 'Продукт', 'Продукт: системный код']),
-        loc: pick(r, ['loc', 'Локация', 'Локация: системный код']),
-        prodver: pick(r, ['prodver', 'Версия', 'Вариант изготовления: системный код']),
-        prio: parseInt(pick(r, ['prodsourceprio', 'Приоритет']) || 1) || 1,
-        outputqty: parseFloat(pick(r, ['outputqty', 'Базисное количество']) || 1) || 1
-      };
-    }).filter(x => x.item && x.loc);
-  }
+  // ── Рецептуры PDS (заголовки нормализуются так же, как остальные листы) ──
+  if (rawPds) MODEL.prodsource = normHeaderRows(rawPds).map(r => ({
+    prodsource: String(pickCol(r, ['prodsource', 'Производственный источник поставки', 'Рецепт', 'id'])),
+    item: String(pickCol(r, ['item', 'Продукт: системный код', 'Продукт'])),
+    loc: String(pickCol(r, ['loc', 'Локация: системный код', 'Локация'])),
+    prodver: String(pickCol(r, ['prodver', 'Вариант изготовления: системный код', 'Версия'])),
+    prio: parseInt(pickCol(r, ['prodsourceprio', 'Приоритет']) || 1) || 1,
+    outputqty: numCol(pickCol(r, ['outputqty', 'Базисное количество'])) || 1
+  })).filter(x => x.item && x.loc);
 
-  if (rawTlane) MODEL.tlane = rawTlane.map(r => ({
-    item: r.item || r['Продукт'] || '',
-    locfr: r.locfr || r['Откуда'] || '',
-    locto: r.locto || r['Куда'] || '',
-    mot: r.mot || r['Вид транспорта'] || 'TRUCK',
-    leadtime: parseFloat(r.tleadtime || r.leadtime || 1)
+  // ── Транспортные отношения (tlane / tlane_prod_mot) ──
+  if (rawTlane) MODEL.tlane = normHeaderRows(rawTlane).map(r => ({
+    item: String(pickCol(r, ['item', 'Продукт: системный код', 'Продукт'])),
+    locfr: String(pickCol(r, ['locfr', 'Локация откуда', 'Откуда'])),
+    locto: String(pickCol(r, ['locto', 'Локация куда', 'Куда'])),
+    mot: String(pickCol(r, ['mot', 'Вид транспорта', 'Транспорт']) || 'TRUCK'),
+    leadtime: numCol(pickCol(r, ['tleadtime', 'leadtime', 'Лидтайм'])) || 1
   })).filter(x => x.locfr && x.locto);
+
+  // ── Автодостройка SKU-матрицы, если файл со справочником SKU не загружен ──
+  deriveSkuFromLoadedData();
 
   FILTERS.items = [];
   FILTERS.pds = [];
@@ -850,7 +880,6 @@ function parseWorkbookSheets(wb) {
   runModelAudit();
   refreshUI();
 }
-
 function runModelAudit() {
   MODEL.audit = [];
   const knownLocs = new Set([...MODEL.sku.map(s => s.loc), ...MODEL.res.map(r => r.loc)]);
