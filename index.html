@@ -584,16 +584,287 @@ tbody tr:hover { background: var(--scp-accent-bg); }
   max-width: 290px;
 }
 #graphTip b { color: var(--scp-accent-2); }
+
+/* ═══════════════ ДОПОЛНЕНИЯ РЕВИЗИИ ═══════════════ */
+
+/* Кнопка-ссылка вместо <a> без href (доступность с клавиатуры) */
+.lnk {
+  background: none;
+  border: 0;
+  padding: 0;
+  font: 600 11px 'Open Sans', sans-serif;
+  color: var(--scp-accent);
+  cursor: pointer;
+  text-decoration: none;
+}
+.lnk:hover { text-decoration: underline; }
+.lnk:disabled { color: var(--scp-text-dis); cursor: default; text-decoration: none; }
+
+/* Видимый фокус для клавиатурной навигации */
+:focus-visible {
+  outline: 2px solid var(--scp-accent);
+  outline-offset: 1px;
+  border-radius: 3px;
+}
+
+/* Тумблер как настоящая кнопка-переключатель */
+button.tgl-wrap {
+  background: transparent;
+  border: 0;
+  font: 400 12px 'Open Sans', sans-serif;
+  padding: 2px 4px;
+}
+.tgl-wrap[aria-checked="true"] .tgl-sw { background: var(--scp-accent); }
+.tgl-wrap[aria-checked="true"] .tgl-sw::after { transform: translateX(14px); }
+.bs-badge.zero { background: var(--scp-ctrl); }
+.bs-badge.warn { background: var(--scp-warn); }
+
+/* Блокировка выделения текста при перетаскивании сплиттеров */
+body.dragging, body.dragging * { user-select: none !important; }
+body.dragging { cursor: row-resize; }
+
+/* ── Панель управления графом ── */
+.graph-ctl {
+  position: absolute;
+  right: 12px;
+  bottom: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  background: var(--scp-surface);
+  border: 1px solid var(--scp-line-2);
+  border-radius: var(--r-m);
+  padding: 4px;
+  z-index: 15;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+}
+.graph-ctl button {
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  background: transparent;
+  border-radius: var(--r-s);
+  color: var(--scp-text-2);
+  cursor: pointer;
+  font: 700 14px 'Open Sans', sans-serif;
+}
+.graph-ctl button:hover { background: var(--scp-accent-bg); color: var(--scp-accent); }
+.graph-ctl svg { width: 15px; height: 15px; stroke: currentColor; fill: none; stroke-width: 1.9; stroke-linecap: round; stroke-linejoin: round; }
+.graph-zoom-lbl {
+  font-size: 10px;
+  text-align: center;
+  color: var(--scp-text-3);
+  font-weight: 600;
+  padding: 1px 0;
+}
+
+/* Пустое состояние холста / подсказка по данным */
+.graph-empty {
+  position: absolute;
+  inset: 0;
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  text-align: center;
+  color: var(--scp-text-3);
+  padding: 24px;
+  pointer-events: none;
+}
+.graph-empty.show { display: flex; }
+.graph-empty h3 { margin: 0; font-size: 15px; color: var(--scp-text-2); }
+.graph-empty p { margin: 0; max-width: 420px; font-size: 12.5px; line-height: 18px; }
+.graph-empty .ge-actions { pointer-events: auto; display: flex; gap: 8px; margin-top: 4px; }
+
+/* ── Меню экспорта ── */
+.menu-pop {
+  display: none;
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  min-width: 240px;
+  background: var(--scp-surface);
+  border: 1px solid var(--scp-menu-bd);
+  border-radius: var(--r-m);
+  box-shadow: 0 6px 20px rgba(0,0,0,0.18);
+  padding: 5px;
+  z-index: 500;
+}
+.pop-wrap.open .menu-pop { display: block; }
+.menu-pop button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  text-align: left;
+  border: 0;
+  background: transparent;
+  color: var(--scp-text);
+  font: 400 12.5px 'Open Sans', sans-serif;
+  padding: 7px 9px;
+  border-radius: var(--r-s);
+  cursor: pointer;
+}
+.menu-pop button:hover { background: var(--scp-accent-bg); color: var(--scp-accent); }
+.menu-pop button:disabled { color: var(--scp-text-dis); cursor: default; background: transparent; }
+.menu-pop hr { border: 0; border-top: 1px solid var(--scp-line); margin: 4px 2px; }
+.menu-pop .mi-sub { display: block; font-size: 10.5px; color: var(--scp-text-3); font-weight: 400; }
+.menu-pop button:hover .mi-sub { color: var(--scp-accent-sub); }
+
+/* ── Нижняя панель: инструменты ── */
+.bs-tools {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.bs-tools input {
+  width: 170px;
+  background: var(--scp-surface);
+  color: var(--scp-text);
+  border: 1px solid var(--scp-line-2);
+  border-radius: var(--r-s);
+  padding: 4px 8px;
+  font: 400 12px 'Open Sans', sans-serif;
+}
+.bs-tools input:focus { outline: none; border-color: var(--scp-accent); }
+.bs-count { font-size: 11px; color: var(--scp-text-3); white-space: nowrap; }
+.bottom-sheet.collapsed { height: 38px !important; min-height: 38px; }
+.bottom-sheet.collapsed .bs-body { display: none; }
+.bottom-sheet.collapsed .bs-resizer { display: none; }
+
+/* Сортируемые заголовки таблиц */
+th.sortable { cursor: pointer; user-select: none; }
+th.sortable:hover { color: var(--scp-accent); }
+th .sort-ind { color: var(--scp-accent); font-size: 9px; margin-left: 3px; }
+
+/* Метка авто-достроенной строки */
+.tag-auto {
+  background: var(--scp-line);
+  color: var(--scp-text-3);
+  padding: 1px 5px;
+  border-radius: 4px;
+  font-size: 10px;
+  font-weight: 600;
+  margin-left: 5px;
+}
+.tag-info { background: var(--scp-accent-bg); color: var(--scp-accent); padding: 2px 6px; border-radius: 4px; font-weight: 600; }
+.row-more { padding: 10px; text-align: center; color: var(--scp-text-3); font-size: 12px; }
+
+/* Кликабельная строка таблицы (переход к узлу) */
+td.cell-link { color: var(--scp-link); cursor: pointer; text-decoration: underline dotted; }
+td.cell-link:hover { color: var(--scp-accent); }
+
+/* Матрица: залипающие заголовки */
+.matrix-tbl thead th { position: sticky; top: 0; z-index: 3; }
+.matrix-tbl tbody th.row-hd,
+.matrix-tbl td.row-hd {
+  position: sticky;
+  left: 0;
+  z-index: 2;
+  background: var(--scp-surface-2);
+  font-weight: 600;
+  text-align: left;
+}
+.matrix-container { position: relative; }
+.matrix-card { max-height: 100%; }
+
+/* ── Тосты ── */
+#toastHost {
+  position: fixed;
+  right: 16px;
+  bottom: 16px;
+  z-index: 2000;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  pointer-events: none;
+}
+.toast {
+  pointer-events: auto;
+  min-width: 240px;
+  max-width: 380px;
+  background: var(--scp-surface);
+  border: 1px solid var(--scp-line-2);
+  border-left: 3px solid var(--scp-accent);
+  border-radius: var(--r-m);
+  box-shadow: 0 6px 22px rgba(0,0,0,0.18);
+  padding: 10px 12px;
+  font-size: 12.5px;
+  line-height: 17px;
+  color: var(--scp-text);
+  animation: toastIn .18s ease;
+}
+.toast.err { border-left-color: var(--scp-err); }
+.toast.ok { border-left-color: var(--scp-ok); }
+.toast.warn { border-left-color: var(--scp-warn); }
+.toast b { display: block; margin-bottom: 2px; }
+@keyframes toastIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+
+/* Индикатор загрузки */
+#busyBar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, transparent, var(--scp-accent), transparent);
+  background-size: 40% 100%;
+  animation: busySlide 1s linear infinite;
+  z-index: 3000;
+  display: none;
+}
+#busyBar.show { display: block; }
+@keyframes busySlide { from { background-position: -40% 0; } to { background-position: 140% 0; } }
+
+/* Тултип графа: заголовок и строки */
+#graphTip .tip-hd { font-weight: 700; margin-bottom: 4px; color: var(--scp-accent-2); }
+#graphTip .tip-row { display: flex; gap: 8px; justify-content: space-between; }
+#graphTip .tip-row span:first-child { color: #b9bac8; }
+#graphTip .tip-sep { border-top: 1px solid rgba(255,255,255,.15); margin: 5px 0; }
+#graphTip .tip-hint { color: #9a9cb2; font-size: 11px; margin-top: 5px; }
+
+/* Адаптивность: узкие экраны */
+@media (max-width: 1100px) {
+  .graph-legend { display: none; }
+  .hdr-title { display: none; }
+}
+@media (max-width: 820px) {
+  header { flex-wrap: wrap; height: auto; min-height: 52px; padding: 6px 10px; }
+  .hdr-right { gap: 6px; }
+  .icon-btn.p span { display: none; }
+  .icon-btn.p { width: 32px; padding: 0; }
+  .sidebar { position: absolute; left: 0; top: 0; bottom: 0; box-shadow: 4px 0 16px rgba(0,0,0,.18); }
+  .bs-tools input { width: 110px; }
+  .tgl-wrap span { display: none; }
+}
+
+/* Уважение к системным настройкам анимации */
+@media (prefers-reduced-motion: reduce) {
+  * { transition: none !important; animation: none !important; }
+}
+
+/* Печать */
+@media print {
+  header, .sidebar, .bottom-sheet, .graph-ctl, #toastHost { display: none !important; }
+}
+
 </style>
 </head>
 <body>
 
+<div id="busyBar" aria-hidden="true"></div>
+
 <!-- ═══════════════ ШАПКА ПАНЕЛИ ═══════════════ -->
 <header>
-  <button class="icon-btn" id="bHdrToggleSb" title="Свернуть / развернуть меню узлов сети">
-    <svg viewBox="0 0 24 24"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+  <button class="icon-btn" id="bHdrToggleSb" title="Свернуть / развернуть меню узлов сети" aria-label="Свернуть или развернуть панель узлов">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
   </button>
-  <div class="inplan-badge" id="bLogo" title="In.Plan SNP Model">
+  <div class="inplan-badge" id="bLogo" title="In.Plan SNP Model" aria-hidden="true">
     <span class="ip-sq ip-s1"></span>
     <span class="ip-sq ip-s2"></span>
     <span class="ip-sq ip-s3"></span>
@@ -602,20 +873,20 @@ tbody tr:hover { background: var(--scp-accent-bg); }
 
   <!-- Фильтр Продуктов (Мультивыбор) -->
   <div class="pop-wrap" id="popItemsWrap">
-    <button class="fchip-btn" id="bItemPop"><span id="lblCurItem">Продукты: Все</span> <span class="badge hide" id="badgeItem">0</span> ▾</button>
-    <div class="pop-menu">
-      <div class="pop-hdr"><span>Продукты / SKU</span><div><a id="btnItemAll">Все</a> · <a id="btnItemClr">Сброс</a></div></div>
-      <input type="text" class="pop-q" id="qItem" placeholder="Поиск SKU...">
+    <button class="fchip-btn" id="bItemPop" aria-haspopup="true" aria-expanded="false"><span id="lblCurItem">Продукты: Все</span> <span class="badge hide" id="badgeItem">0</span> ▾</button>
+    <div class="pop-menu" role="group" aria-label="Фильтр по продуктам">
+      <div class="pop-hdr"><span>Продукты / SKU</span><div><button type="button" class="lnk" id="btnItemAll">Все</button> · <button type="button" class="lnk" id="btnItemClr">Сброс</button></div></div>
+      <input type="text" class="pop-q" id="qItem" placeholder="Поиск SKU..." aria-label="Поиск по продуктам">
       <div class="pop-list" id="listItems"></div>
     </div>
   </div>
 
   <!-- Фильтр Рецептур PDS (Мультивыбор) -->
   <div class="pop-wrap" id="popPdsWrap">
-    <button class="fchip-btn" id="bPdsPop"><span id="lblCurPds">Спецификации: Все</span> <span class="badge hide" id="badgePds">0</span> ▾</button>
-    <div class="pop-menu">
-      <div class="pop-hdr"><span>Рецепты / PDS</span><div><a id="btnPdsAll">Все</a> · <a id="btnPdsClr">Сброс</a></div></div>
-      <input type="text" class="pop-q" id="qPds" placeholder="Поиск PDS...">
+    <button class="fchip-btn" id="bPdsPop" aria-haspopup="true" aria-expanded="false"><span id="lblCurPds">Спецификации: Все</span> <span class="badge hide" id="badgePds">0</span> ▾</button>
+    <div class="pop-menu" role="group" aria-label="Фильтр по спецификациям">
+      <div class="pop-hdr"><span>Рецепты / PDS</span><div><button type="button" class="lnk" id="btnPdsAll">Все</button> · <button type="button" class="lnk" id="btnPdsClr">Сброс</button></div></div>
+      <input type="text" class="pop-q" id="qPds" placeholder="Поиск PDS..." aria-label="Поиск по спецификациям">
       <div class="pop-list" id="listPds"></div>
     </div>
   </div>
@@ -623,23 +894,37 @@ tbody tr:hover { background: var(--scp-accent-bg); }
   <button class="btn-clr-flt" id="bResetAllFilters" disabled>Сбросить фильтры</button>
 
   <div class="hdr-right">
-    <div class="tgl-wrap" id="tglWarns">
-      <div class="tgl-sw"></div>
-      <span>Предупреждения <span class="bs-badge" id="warnBadgeCount">0</span></span>
+    <button type="button" class="tgl-wrap" id="tglWarns" role="switch" aria-checked="false" title="Подсветить на графе узлы с замечаниями">
+      <span class="tgl-sw" aria-hidden="true"></span>
+      <span>Предупреждения</span> <span class="bs-badge zero" id="warnBadgeCount">0</span>
+    </button>
+
+    <div class="seg-btn" role="group" aria-label="Режим отображения">
+      <button class="on" id="btnModeGraph" aria-pressed="true">Граф</button>
+      <button id="btnModeMatrix" aria-pressed="false">Матрица</button>
     </div>
-    
-    <div class="seg-btn">
-      <button class="on" id="btnModeGraph">Граф</button>
-      <button id="btnModeMatrix">Матрица</button>
+
+    <button class="icon-btn" id="bTheme" title="Сменить тему (светлая / тёмная)" aria-label="Сменить тему"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg></button>
+
+    <div class="pop-wrap" id="popExportWrap">
+      <button class="icon-btn" id="bExport" title="Экспорт и шаблоны" aria-haspopup="true" aria-expanded="false" aria-label="Экспорт данных">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+      </button>
+      <div class="menu-pop" role="menu" aria-label="Экспорт">
+        <button type="button" id="miExpXlsx" role="menuitem">📊 Выгрузить данные в XLSX<span class="mi-sub">Все таблицы с учётом фильтров</span></button>
+        <button type="button" id="miExpCsv" role="menuitem">📄 Текущая вкладка в CSV<span class="mi-sub">То, что видно в нижней панели</span></button>
+        <button type="button" id="miExpPng" role="menuitem">🖼 Сохранить граф в PNG<span class="mi-sub">Вся схема целиком, не только экран</span></button>
+        <hr>
+        <button type="button" id="miTemplate" role="menuitem">📥 Скачать шаблон XLSX<span class="mi-sub">Пустая книга с нужными листами и колонками</span></button>
+        <button type="button" id="miDemo" role="menuitem">🎬 Вернуть демо-данные<span class="mi-sub">Сбросить модель к учебному примеру</span></button>
+      </div>
     </div>
-    
-    <button class="icon-btn" id="bTheme" title="Сменить тему"><svg viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg></button>
-    
-    <button class="icon-btn p" id="bUpload" title="Загрузить файлы XLSX (sku, res, prodsource, tlane)">
-      <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+
+    <button class="icon-btn p" id="bUpload" title="Загрузить книги XLSX с листами sku, res, prodsource, tlane">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
       <span>Загрузить данные</span>
     </button>
-    <input type="file" id="fInput" multiple accept=".xlsx,.xls" style="display:none">
+    <input type="file" id="fInput" multiple accept=".xlsx,.xls,.csv" style="display:none">
   </div>
 </header>
 
@@ -647,41 +932,56 @@ tbody tr:hover { background: var(--scp-accent-bg); }
 <div class="main-layout">
 
   <!-- ЛЕВАЯ ПАНЕЛЬ "УЗЛЫ" -->
-  <aside class="sidebar" id="sidebar">
+  <aside class="sidebar" id="sidebar" aria-label="Узлы сети">
     <div class="sb-hdr">
       <span>Узлы сети</span>
       <div>
-        <a id="btnNodesClr" style="margin-right:8px">Сброс</a>
-        <button class="icon-btn" id="bToggleSb" style="width:20px;height:20px;border:0" title="Свернуть">‹</button>
+        <button type="button" class="lnk" id="btnNodesClr" style="margin-right:8px">Сброс</button>
+        <button class="icon-btn" id="bToggleSb" style="width:20px;height:20px;border:0" title="Свернуть панель" aria-label="Свернуть панель узлов">‹</button>
       </div>
     </div>
     <div class="sb-search">
-      <input type="text" id="sbSearchInput" placeholder="Поиск узла...">
+      <input type="text" id="sbSearchInput" placeholder="Поиск узла... (/)" aria-label="Поиск узла сети">
     </div>
     <div class="sb-tree" id="sbTree"></div>
   </aside>
 
   <!-- ЦЕНТР: ХОЛСТ ГРАФА ИЛИ МАТРИЦА -->
   <div class="content-area">
-    
+
     <div class="graph-toolbar" id="gToolbar">
       <span>Сетка: <span class="graph-stats" id="graphStat">0 узлов · 0 связей</span></span>
-      <div class="graph-legend">
-        <span>🏭 Завод</span>
-        <span>🏢 РЦ/Склад</span>
-        <span>⚓ Порт</span>
-        <span>📦 Поставщик</span>
-        <span>🛒 Сбыт</span>
-      </div>
+      <div class="graph-legend" id="graphLegend"></div>
       <div id="focusPillWrap" style="display:none">
-        <span class="graph-focus-pill"><span id="focusPillText">Фокус</span> <button id="bClearFocus">✕</button></span>
+        <span class="graph-focus-pill"><span id="focusPillText">Фокус</span> <button id="bClearFocus" title="Сбросить фокус (Esc)" aria-label="Сбросить фокус">✕</button></span>
       </div>
     </div>
 
     <!-- Область холста -->
     <div class="graph-canvas-wrap" id="graphWrap">
-      <button class="sb-unfold-btn" id="bFloatingRestoreSb" title="Раскрыть панель узлов">›</button>
-      <canvas id="graphCanvas"></canvas>
+      <button class="sb-unfold-btn" id="bFloatingRestoreSb" title="Раскрыть панель узлов" aria-label="Раскрыть панель узлов">›</button>
+      <canvas id="graphCanvas" role="img" aria-label="Схема сети поставок"></canvas>
+
+      <div class="graph-empty" id="graphEmpty">
+        <h3 id="geTitle">Нет данных для отображения</h3>
+        <p id="geText">Загрузите книги XLSX с листами <b>sku</b>, <b>res</b>, <b>prodsource</b>, <b>tlane</b> — или начните с шаблона.</p>
+        <div class="ge-actions">
+          <button type="button" class="icon-btn p" id="geUpload" style="height:30px">Загрузить данные</button>
+          <button type="button" class="icon-btn" id="geTemplate" style="width:auto;padding:0 12px;height:30px">Скачать шаблон</button>
+        </div>
+      </div>
+
+      <div class="graph-ctl" role="group" aria-label="Управление схемой">
+        <button type="button" id="bZoomIn" title="Приблизить (+)" aria-label="Приблизить">+</button>
+        <div class="graph-zoom-lbl" id="zoomLbl">100%</div>
+        <button type="button" id="bZoomOut" title="Отдалить (−)" aria-label="Отдалить">−</button>
+        <button type="button" id="bZoomFit" title="Вписать в экран (F)" aria-label="Вписать в экран">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/></svg>
+        </button>
+        <button type="button" id="bRelayout" title="Пересобрать раскладку (R)" aria-label="Пересобрать раскладку">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+        </button>
+      </div>
     </div>
 
     <!-- Область матрицы -->
@@ -698,37 +998,99 @@ tbody tr:hover { background: var(--scp-accent-bg); }
 
 <!-- ═══════════════ НИЖНЯЯ ТАБЛИЧНАЯ ПАНЕЛЬ ═══════════════ -->
 <div class="bottom-sheet" id="bottomSheet">
-  <div class="bs-resizer" id="bsResizer"></div>
+  <div class="bs-resizer" id="bsResizer" role="separator" aria-label="Изменить высоту панели" tabindex="0"></div>
   <div class="bs-nav">
     <button class="bs-tab on" data-tab="sku">SKU матрица (<span id="cntSku">0</span>)</button>
     <button class="bs-tab" data-tab="tlane">Транспортные отношения (<span id="cntTlane">0</span>)</button>
     <button class="bs-tab" data-tab="res">Ресурсы и мощности (<span id="cntRes">0</span>)</button>
     <button class="bs-tab" data-tab="prodsource">Рецептуры PDS (<span id="cntPds">0</span>)</button>
     <button class="bs-tab" data-tab="audit">Предупреждения (<span id="cntAudit">0</span>)</button>
+    <div class="bs-tools">
+      <input type="text" id="tblSearch" placeholder="Поиск в таблице..." aria-label="Поиск в таблице">
+      <span class="bs-count" id="tblCount"></span>
+      <button class="icon-btn" id="bCollapseSheet" style="width:24px;height:24px;border:0" title="Свернуть / развернуть таблицы" aria-label="Свернуть или развернуть таблицы">▾</button>
+    </div>
   </div>
   <div class="bs-body" id="bsBody"></div>
 </div>
 
-<div id="graphTip"></div>
+<div id="graphTip" role="tooltip"></div>
+<div id="toastHost" aria-live="polite"></div>
 
 <!-- ═══════════════ СКРИПТЫ МОДЕЛИ И ДВИЖКА ═══════════════ -->
 <script>
-/* ═══════════════ 1. СТРУКТУРА ДАННЫХ И ДЕМО-НАБОР ═══════════════ */
-const MODEL = {
-  sku: [],
-  res: [],
-  prodsource: [],
-  tlane: [],
-  audit: []
-};
+'use strict';
+/* ═══════════════════════════════════════════════════════════════════
+   In.Plan · Визуализация сети поставок
+   Ревизия: безопасный рендеринг, устойчивый импорт, честный аудит,
+   послойная раскладка, экспорт, восстановление сессии.
+   ═══════════════════════════════════════════════════════════════════ */
 
-// Компактный базовый демо-набор
+/* ═══════════════ 0. УТИЛИТЫ ═══════════════ */
+
+const $ = (id) => document.getElementById(id);
+
+/* Экранирование: все пользовательские данные попадают в DOM только через esc().
+   Без этого содержимое XLSX (имена локаций, коды) исполнялось бы как HTML. */
+const ESC_MAP = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' };
+const esc = (s) => String(s === null || s === undefined ? '' : s).replace(/[&<>"']/g, (c) => ESC_MAP[c]);
+
+function debounce(fn, ms) {
+  let t = null;
+  return function (...a) {
+    clearTimeout(t);
+    t = setTimeout(() => fn.apply(this, a), ms);
+  };
+}
+
+/* Разбор чисел с учётом русской локали: пробелы-разделители тысяч,
+   запятая как десятичный разделитель, неразрывные пробелы из Excel. */
+function toNum(v, def = null) {
+  if (v === null || v === undefined) return def;
+  if (typeof v === 'number') return isFinite(v) ? v : def;
+  let s = String(v).trim();
+  if (!s) return def;
+  s = s.replace(/[\u00A0\u202F\s]/g, '');
+  const lastComma = s.lastIndexOf(',');
+  const lastDot = s.lastIndexOf('.');
+  if (lastComma > -1 && lastDot > -1) {
+    if (lastComma > lastDot) s = s.replace(/\./g, '').replace(',', '.');
+    else s = s.replace(/,/g, '');
+  } else if (lastComma > -1) {
+    s = s.split(',').length === 2 ? s.replace(',', '.') : s.replace(/,/g, '');
+  }
+  const n = parseFloat(s);
+  return isFinite(n) ? n : def;
+}
+/* Значение по умолчанию применяется только при ОТСУТСТВИИ данных.
+   Прежняя реализация (`|| 24`) превращала честный 0 в 24. */
+const orDefault = (v, def) => (v === null || v === undefined ? def : v);
+
+const fmtNum = (n) => (n === null || n === undefined || n === '' ? '—' : new Intl.NumberFormat('ru-RU', { maximumFractionDigits: 3 }).format(n));
+
+let toastSeq = 0;
+function toast(msg, kind = 'info', title = '', ms = 4200) {
+  const host = $('toastHost');
+  if (!host) return;
+  const el = document.createElement('div');
+  el.className = 'toast ' + kind;
+  el.id = 'toast' + ++toastSeq;
+  el.innerHTML = (title ? '<b>' + esc(title) + '</b>' : '') + esc(msg);
+  host.appendChild(el);
+  setTimeout(() => el.remove(), ms);
+}
+const setBusy = (on) => $('busyBar').classList.toggle('show', on);
+
+/* ═══════════════ 1. МОДЕЛЬ ДАННЫХ ═══════════════ */
+
+const MODEL = { sku: [], res: [], prodsource: [], tlane: [], audit: [] };
+
 const SEED_DATA = {
   sku: [
     { item: 'FPSO_1', loc: 'Plant_35', res: 'Plant_35_RES_104', minlotsize: 10, maxlotsize: 5000 },
     { item: 'FPSO_1', loc: 'Dispatch_EX_7', res: '', minlotsize: 0, maxlotsize: 0 },
     { item: 'FPSO_1', loc: 'Sale_EX_2', res: '', minlotsize: 0, maxlotsize: 0 },
-    { item: 'SPFC_29', loc: 'Plant_31', res: 'Plant_31_RES_97', minlotsize: 5, maxlotsize: 2000 },
+    { item: 'SPFC_29', loc: 'Plant_31', res: 'Plant_31_RES_151', minlotsize: 5, maxlotsize: 2000 },
     { item: 'FCR_23', loc: 'Vendor_20', res: '', minlotsize: 1, maxlotsize: 500 }
   ],
   res: [
@@ -751,32 +1113,40 @@ const SEED_DATA = {
   ]
 };
 
-/* ═══════════════ 2. ГЛОБАЛЬНОЕ СОСТОЯНИЕ ФИЛЬТРОВ ═══════════════ */
-const FILTERS = {
-  items: [],      // массив выбранных SKU
-  pds: [],        // массив выбранных рецептов PDS
-  nodes: []       // массив выбранных узлов сети
-};
-
-let FOCUS_NODE_ID = null; // узел, выбранный кликом на графе для подсветки связей
-let VIEW_MODE = 'graph';  // 'graph' | 'matrix'
-let ACTIVE_TAB = 'sku';   // 'sku' | 'tlane' | 'res' | 'prodsource' | 'audit'
-let SHOW_WARNS_ONLY = false;
-
-/* ═══════════════ 3. УНИВЕРСАЛЬНЫЙ ПАРСЕР XLSX ═══════════════ */
-function normalizeKey(k) {
-  return String(k || '').trim().toLowerCase().replace(/[^a-zа-я0-9]/g, '');
+function loadSeed() {
+  MODEL.sku = SEED_DATA.sku.map((r) => ({ ...r }));
+  MODEL.res = SEED_DATA.res.map((r) => ({ ...r }));
+  MODEL.prodsource = SEED_DATA.prodsource.map((r) => ({ ...r }));
+  MODEL.tlane = SEED_DATA.tlane.map((r) => ({ ...r }));
 }
 
-/* Нормализация заголовков всех листов: регистр, пробелы, двоеточия, скобки не важны */
+/* ═══════════════ 2. СОСТОЯНИЕ ═══════════════ */
+
+/* Set вместо массива: проверка принадлежности O(1) вместо O(n)
+   в циклах отрисовки — на десятках тысяч строк это решающе. */
+const FILTERS = { items: new Set(), pds: new Set(), nodes: new Set() };
+
+let FOCUS_NODE_ID = null;
+let VIEW_MODE = 'graph';
+let ACTIVE_TAB = 'sku';
+let WARN_HIGHLIGHT = false;
+let TABLE_QUERY = '';
+const SORT_STATE = {};
+let ROW_LIMIT = 400;
+const ROW_STEP = 400;
+
+/* ═══════════════ 3. ИМПОРТ XLSX ═══════════════ */
+
+const normalizeKey = (k) => String(k === null || k === undefined ? '' : k).trim().toLowerCase().replace(/[^a-zа-яё0-9]/g, '');
+
 function normHeaderRows(rows) {
-  return rows.map(raw => {
+  return rows.map((raw) => {
     const r = {};
-    Object.keys(raw).forEach(k => { r[normalizeKey(k)] = raw[k]; });
+    Object.keys(raw).forEach((k) => { r[normalizeKey(k)] = raw[k]; });
     return r;
   });
 }
-/* Универсальное чтение колонки по списку алиасов (алиасы тоже нормализуются) */
+
 function pickCol(r, keys) {
   for (const a of keys) {
     const v = r[normalizeKey(a)];
@@ -784,325 +1154,678 @@ function pickCol(r, keys) {
   }
   return '';
 }
-const numCol = (v, def = 0) => {
-  const n = parseFloat(String(v === '' || v == null ? '' : v).replace(',', '.'));
-  return isFinite(n) ? n : def;
+const pickStr = (r, keys) => String(pickCol(r, keys)).trim();
+
+/* Соответствие «лист книги → сущность модели».
+   Точное совпадение имени приоритетнее частичного, поэтому лист
+   «prodsource» больше не может быть перехвачен алиасом другого раздела. */
+const SHEET_ALIASES = {
+  sku: ['sku', 'skumatrix', 'номенклатура', 'материалы', 'продукты'],
+  res: ['res', 'resource', 'ресурс', 'ресурсы', 'мощности'],
+  prodsource: ['prodsource', 'pds', 'рецепт', 'рецептуры', 'спецификация', 'спецификации'],
+  tlane: ['tlane', 'tlaneprodmot', 'transport', 'плечи', 'транспорт', 'отношения']
 };
 
-/* Автодостраивание SKU-матрицы из загруженных плеч (tlane) и рецептур (prodsource):
-   каждая уникальная пара «продукт × локация» становится строкой справочника.
-   Партии неизвестны (0 → в таблице отображается «—»), ресурс — пустой. */
+function matchSheets(wb) {
+  const names = wb.SheetNames.map((n) => ({ raw: n, norm: normalizeKey(n) }));
+  const taken = new Set();
+  const found = {};
+  // 1-й проход — точные совпадения, 2-й — вхождение подстроки
+  [true, false].forEach((exact) => {
+    Object.keys(SHEET_ALIASES).forEach((kind) => {
+      if (found[kind]) return;
+      for (const alias of SHEET_ALIASES[kind]) {
+        const a = normalizeKey(alias);
+        const hit = names.find((n) => !taken.has(n.raw) && (exact ? n.norm === a : n.norm.includes(a)));
+        if (hit) { found[kind] = hit.raw; taken.add(hit.raw); return; }
+      }
+    });
+  });
+  return found;
+}
+
+const MAPPERS = {
+  sku: (r) => ({
+    item: pickStr(r, ['item', 'Продукт: системный код', 'Продукт', 'Материал: системный код', 'Материал']),
+    loc: pickStr(r, ['loc', 'Локация: системный код', 'Локация', 'Склад']),
+    res: pickStr(r, ['Ресурс: системный код', 'Ресурс: код', 'res', 'Ресурс']),
+    minlotsize: orDefault(toNum(pickCol(r, ['Минимальная партия', 'minlotsize', 'min_lot'])), 0),
+    maxlotsize: orDefault(toNum(pickCol(r, ['Максимальная партия', 'maxlotsize', 'max_lot'])), 0)
+  }),
+  res: (r) => ({
+    id: pickStr(r, ['Ресурс: системный код', 'res', 'Ресурс', 'id']),
+    loc: pickStr(r, ['Локация: системный код', 'loc', 'Локация', 'Завод: системный код']),
+    name: pickStr(r, ['Ресурс: наименование', 'name', 'Наименование ресурса']),
+    type: pickStr(r, ['Вид ресурса: наименование', 'Тип Ресурса', 'type', 'Вид ресурса']) || '1',
+    capuom: pickStr(r, ['capuom', 'ЕИ мощности', 'Ед. изм. мощности']) || 'H',
+    capacity: orDefault(toNum(pickCol(r, ['defaultbucketcapacity', 'ФРВ Номинальный', 'Доступная мощность (итог)', 'capacity', 'Мощность'])), 24)
+  }),
+  prodsource: (r) => ({
+    prodsource: pickStr(r, ['prodsource', 'Производственный источник поставки', 'Рецепт', 'id']),
+    item: pickStr(r, ['item', 'Продукт: системный код', 'Продукт']),
+    loc: pickStr(r, ['loc', 'Локация: системный код', 'Локация']),
+    prodver: pickStr(r, ['prodver', 'Вариант изготовления: системный код', 'Версия']),
+    prio: orDefault(toNum(pickCol(r, ['prodsourceprio', 'Приоритет'])), 1),
+    outputqty: orDefault(toNum(pickCol(r, ['outputqty', 'Базисное количество'])), 1)
+  }),
+  tlane: (r) => ({
+    item: pickStr(r, ['item', 'Продукт: системный код', 'Продукт']),
+    locfr: pickStr(r, ['locfr', 'Локация откуда', 'Откуда']),
+    locto: pickStr(r, ['locto', 'Локация куда', 'Куда']),
+    mot: pickStr(r, ['mot', 'Вид транспорта', 'Транспорт']) || 'TRUCK',
+    leadtime: orDefault(toNum(pickCol(r, ['tleadtime', 'leadtime', 'Лидтайм'])), 1)
+  })
+};
+const REQUIRED = {
+  sku: (x) => x.item && x.loc,
+  res: (x) => x.id,
+  prodsource: (x) => x.item && x.loc,
+  tlane: (x) => x.locfr && x.locto
+};
+
+/* Одна книга → набор распознанных сущностей (без записи в MODEL). */
+function extractFromWorkbook(wb) {
+  const sheets = matchSheets(wb);
+  const out = {};
+  Object.keys(sheets).forEach((kind) => {
+    const rows = XLSX.utils.sheet_to_json(wb.Sheets[sheets[kind]], { defval: '' });
+    out[kind] = normHeaderRows(rows).map(MAPPERS[kind]).filter(REQUIRED[kind]);
+  });
+  return { sheets, data: out };
+}
+
+const readFileAsArrayBuffer = (file) =>
+  new Promise((resolve, reject) => {
+    const fr = new FileReader();
+    fr.onload = () => resolve(fr.result);
+    fr.onerror = () => reject(new Error('Не удалось прочитать файл «' + file.name + '»'));
+    fr.readAsArrayBuffer(file);
+  });
+
+/* Импорт пачки файлов.
+   Прежняя реализация запускала FileReader'ы параллельно и писала в MODEL
+   из колбэков: порядок завершения был случайным, флаг очистки демо-данных
+   срабатывал один раз, а автодостройка SKU выполнялась на неполной модели.
+   Теперь книги читаются последовательно и сливаются в один результат. */
+async function importFiles(fileList) {
+  const files = Array.from(fileList);
+  if (!files.length) return;
+  setBusy(true);
+  const merged = { sku: [], res: [], prodsource: [], tlane: [] };
+  const seenKinds = new Set();
+  const problems = [];
+
+  try {
+    for (const file of files) {
+      try {
+        const buf = await readFileAsArrayBuffer(file);
+        const wb = XLSX.read(buf, { type: 'array' });
+        if (!wb.SheetNames || !wb.SheetNames.length) throw new Error('книга не содержит листов');
+        const { sheets, data } = extractFromWorkbook(wb);
+        const kinds = Object.keys(data);
+        if (!kinds.length) {
+          problems.push(file.name + ': не найдено ни одного известного листа (' + wb.SheetNames.slice(0, 5).join(', ') + ')');
+          continue;
+        }
+        kinds.forEach((k) => {
+          merged[k] = merged[k].concat(data[k]);
+          seenKinds.add(k);
+          void sheets;
+        });
+      } catch (err) {
+        problems.push(file.name + ': ' + (err && err.message ? err.message : 'ошибка разбора'));
+      }
+    }
+
+    if (!seenKinds.size) {
+      toast(problems.join(' · ') || 'Подходящих листов не найдено. Скачайте шаблон, чтобы увидеть ожидаемую структуру.', 'err', 'Импорт не выполнен', 9000);
+      return;
+    }
+
+    // Загруженные разделы заменяют модель целиком; не загруженные — очищаются,
+    // чтобы в модели не оставалось перемешанных демо-строк.
+    MODEL.sku = merged.sku;
+    MODEL.res = merged.res;
+    MODEL.prodsource = merged.prodsource;
+    MODEL.tlane = merged.tlane;
+
+    deriveSkuFromLoadedData();
+    resetFilters();
+    resetGraphView();
+    runModelAudit();
+    persistModel();
+    refreshUI(true);
+
+    const stat = ['sku', 'res', 'prodsource', 'tlane']
+      .filter((k) => seenKinds.has(k))
+      .map((k) => k + ': ' + merged[k].length)
+      .join(' · ');
+    toast(stat, 'ok', 'Данные загружены');
+    if (problems.length) toast(problems.join(' · '), 'warn', 'Часть файлов пропущена', 9000);
+  } finally {
+    setBusy(false);
+  }
+}
+
+/* Автодостройка справочника SKU из плеч и рецептур.
+   Достроенные строки помечаются derived:true и НЕ считаются мастер-данными,
+   иначе аудит перестаёт видеть незадекларированные локации. */
 function deriveSkuFromLoadedData() {
-  const seen = new Set(MODEL.sku.map(s => s.item + '|' + s.loc));
-  const addPair = (item, loc) => {
+  const seen = new Set(MODEL.sku.map((s) => s.item + '|' + s.loc));
+  const add = (item, loc) => {
     if (!item || !loc) return;
-    const k = String(item) + '|' + String(loc);
+    const k = item + '|' + loc;
     if (seen.has(k)) return;
     seen.add(k);
-    MODEL.sku.push({ item: String(item), loc: String(loc), res: '', minlotsize: 0, maxlotsize: 0, derived: true });
+    MODEL.sku.push({ item, loc, res: '', minlotsize: 0, maxlotsize: 0, derived: true });
   };
-  MODEL.prodsource.forEach(p => addPair(p.item, p.loc));
-  MODEL.tlane.forEach(t => { addPair(t.item, t.locfr); addPair(t.item, t.locto); });
+  MODEL.prodsource.forEach((p) => add(p.item, p.loc));
+  MODEL.tlane.forEach((t) => { add(t.item, t.locfr); add(t.item, t.locto); });
 }
 
-function parseWorkbookSheets(wb) {
-  // При первой пользовательской загрузке очищаем демо-набор
-  if (parseWorkbookSheets._wipeNext) {
-    MODEL.sku = [];
-    MODEL.res = [];
-    MODEL.prodsource = [];
-    MODEL.tlane = [];
-    parseWorkbookSheets._wipeNext = false;
-  }
+/* ═══════════════ 4. АУДИТ МОДЕЛИ ═══════════════ */
 
-  const sheetMap = {};
-  wb.SheetNames.forEach(n => sheetMap[normalizeKey(n)] = n);
-
-  const getSheetData = (aliases) => {
-    for (const a of aliases) {
-      const match = Object.keys(sheetMap).find(k => k.includes(normalizeKey(a)));
-      if (match) return XLSX.utils.sheet_to_json(wb.Sheets[sheetMap[match]], { defval: '' });
-    }
-    return null;
-  };
-
-  const rawSku = getSheetData(['sku', 'номенклатура', 'материалы']);
-  const rawRes = getSheetData(['res', 'ресурс', 'мощности']);
-  const rawPds = getSheetData(['prodsource', 'pds', 'рецепт', 'спецификация']);
-  const rawTlane = getSheetData(['tlane', 'transport', 'плечи', 'отношения']);
-
-  // ── SKU матрица (поддержка составных заголовков вида «Продукт: системный код») ──
-  if (rawSku) MODEL.sku = normHeaderRows(rawSku).map(r => ({
-    item: pickCol(r, ['item', 'Продукт: системный код', 'Продукт', 'Материал: системный код', 'Материал']),
-    loc: pickCol(r, ['loc', 'Локация: системный код', 'Локация', 'Склад']),
-    res: pickCol(r, ['Ресурс: системный код', 'Ресурс: код', 'res', 'Ресурс']),
-    minlotsize: numCol(pickCol(r, ['Минимальная партия', 'minlotsize', 'min_lot'])),
-    maxlotsize: numCol(pickCol(r, ['Максимальная партия', 'maxlotsize', 'max_lot']))
-  })).filter(x => x.item && x.loc);
-
-  // ── Ресурсы и мощности ──
-  if (rawRes) MODEL.res = normHeaderRows(rawRes).map(r => ({
-    id: pickCol(r, ['Ресурс: системный код', 'res', 'Ресурс', 'id']),
-    loc: pickCol(r, ['Локация: системный код', 'loc', 'Локация', 'Завод: системный код']),
-    name: pickCol(r, ['Ресурс: наименование', 'name', 'Наименование ресурса']),
-    type: String(pickCol(r, ['Вид ресурса: наименование', 'Тип Ресурса', 'type', 'Вид ресурса']) || '1'),
-    capuom: pickCol(r, ['capuom', 'ЕИ мощности', 'Ед. изм. мощности']) || 'H',
-    capacity: numCol(pickCol(r, ['defaultbucketcapacity', 'ФРВ Номинальный', 'Доступная мощность (итог)', 'capacity', 'Мощность'])) || 24
-  })).filter(x => x.id);
-
-  // ── Рецептуры PDS (заголовки нормализуются так же, как остальные листы) ──
-  if (rawPds) MODEL.prodsource = normHeaderRows(rawPds).map(r => ({
-    prodsource: String(pickCol(r, ['prodsource', 'Производственный источник поставки', 'Рецепт', 'id'])),
-    item: String(pickCol(r, ['item', 'Продукт: системный код', 'Продукт'])),
-    loc: String(pickCol(r, ['loc', 'Локация: системный код', 'Локация'])),
-    prodver: String(pickCol(r, ['prodver', 'Вариант изготовления: системный код', 'Версия'])),
-    prio: parseInt(pickCol(r, ['prodsourceprio', 'Приоритет']) || 1) || 1,
-    outputqty: numCol(pickCol(r, ['outputqty', 'Базисное количество'])) || 1
-  })).filter(x => x.item && x.loc);
-
-  // ── Транспортные отношения (tlane / tlane_prod_mot) ──
-  if (rawTlane) MODEL.tlane = normHeaderRows(rawTlane).map(r => ({
-    item: String(pickCol(r, ['item', 'Продукт: системный код', 'Продукт'])),
-    locfr: String(pickCol(r, ['locfr', 'Локация откуда', 'Откуда'])),
-    locto: String(pickCol(r, ['locto', 'Локация куда', 'Куда'])),
-    mot: String(pickCol(r, ['mot', 'Вид транспорта', 'Транспорт']) || 'TRUCK'),
-    leadtime: numCol(pickCol(r, ['tleadtime', 'leadtime', 'Лидтайм'])) || 1
-  })).filter(x => x.locfr && x.locto);
-
-  // ── Автодостройка SKU-матрицы, если файл со справочником SKU не загружен ──
-  deriveSkuFromLoadedData();
-
-  FILTERS.items = [];
-  FILTERS.pds = [];
-  FILTERS.nodes = [];
-  FOCUS_NODE_ID = null;
-
-  runModelAudit();
-  refreshUI();
-}
+/* Каждая запись несёт машиночитаемый список локаций (locs), поэтому
+   подсветка на графе больше не разбирает текст сообщения регулярками. */
 function runModelAudit() {
-  MODEL.audit = [];
-  const knownLocs = new Set([...MODEL.sku.map(s => s.loc), ...MODEL.res.map(r => r.loc)]);
-  const hasMaster = MODEL.sku.length > 0 || MODEL.res.length > 0;
+  const A = [];
+  const push = (type, cat, obj, msg, locs) => A.push({ type, cat, obj, msg, locs: locs || [] });
 
-  MODEL.tlane.forEach(t => {
-    if (t.locfr && hasMaster && !knownLocs.has(t.locfr)) {
-      MODEL.audit.push({ type: 'err', cat: 'Транспорт', obj: `${t.locfr} → ${t.locto}`, msg: `Локация отправления "${t.locfr}" не описана в матрице SKU/Res` });
-    }
-    if (t.locto && hasMaster && !knownLocs.has(t.locto)) {
-      MODEL.audit.push({ type: 'err', cat: 'Транспорт', obj: `${t.locfr} → ${t.locto}`, msg: `Локация назначения "${t.locto}" не описана в матрице SKU/Res` });
+  // Мастер-данные = только реально объявленные строки, без авто-достроенных
+  const declaredSku = MODEL.sku.filter((s) => !s.derived);
+  const knownLocs = new Set([...declaredSku.map((s) => s.loc), ...MODEL.res.map((r) => r.loc)].filter(Boolean));
+  const hasMaster = declaredSku.length > 0 || MODEL.res.length > 0;
+  const resIds = new Set(MODEL.res.map((r) => r.id));
+  const skuPairs = new Set(declaredSku.map((s) => s.item + '|' + s.loc));
+
+  // ── Транспортные плечи ──
+  const laneSeen = new Map();
+  MODEL.tlane.forEach((t) => {
+    const arrow = t.locfr + ' → ' + t.locto;
+    if (hasMaster && t.locfr && !knownLocs.has(t.locfr)) push('err', 'Транспорт', arrow, 'Локация отправления «' + t.locfr + '» не описана в справочниках SKU/Ресурсы', [t.locfr]);
+    if (hasMaster && t.locto && !knownLocs.has(t.locto)) push('err', 'Транспорт', arrow, 'Локация назначения «' + t.locto + '» не описана в справочниках SKU/Ресурсы', [t.locto]);
+    if (t.locfr && t.locfr === t.locto) push('err', 'Транспорт', arrow, 'Плечо замкнуто само на себя — отправление и назначение совпадают', [t.locfr]);
+    if (t.leadtime < 0) push('err', 'Транспорт', arrow, 'Отрицательный срок доставки: ' + t.leadtime, [t.locfr, t.locto]);
+    else if (t.leadtime > 365) push('warn', 'Транспорт', arrow, 'Подозрительно большой срок доставки: ' + t.leadtime + ' дн.', [t.locfr, t.locto]);
+    if (hasMaster && t.item && !skuPairs.has(t.item + '|' + t.locfr)) push('warn', 'Транспорт', arrow, 'Продукт «' + t.item + '» не заведён в SKU-матрице на локации отправления', [t.locfr]);
+
+    const key = [t.item, t.locfr, t.locto, t.mot].join('|');
+    laneSeen.set(key, (laneSeen.get(key) || 0) + 1);
+  });
+  laneSeen.forEach((n, key) => {
+    if (n > 1) {
+      const p = key.split('|');
+      push('warn', 'Транспорт', p[1] + ' → ' + p[2], 'Дубль плеча: ' + n + ' одинаковых строк (' + p[0] + ', ' + p[3] + ')', [p[1], p[2]]);
     }
   });
 
-  MODEL.prodsource.forEach(p => {
-    const exists = MODEL.sku.some(s => s.item === p.item && s.loc === p.loc);
-    if (!exists) {
-      MODEL.audit.push({ type: 'warn', cat: 'PDS/BOM', obj: `${p.prodsource}`, msg: `Продукт ${p.item} производится на ${p.loc}, но отсутствует запись в SKU` });
+  // ── SKU-матрица ──
+  const skuSeen = new Map();
+  declaredSku.forEach((s) => {
+    const k = s.item + '|' + s.loc;
+    skuSeen.set(k, (skuSeen.get(k) || 0) + 1);
+    if (s.res && resIds.size && !resIds.has(s.res)) push('err', 'SKU', s.item + ' @ ' + s.loc, 'Ссылка на несуществующий ресурс «' + s.res + '»', [s.loc]);
+    if (s.minlotsize && s.maxlotsize && s.minlotsize > s.maxlotsize) push('err', 'SKU', s.item + ' @ ' + s.loc, 'Минимальная партия (' + s.minlotsize + ') больше максимальной (' + s.maxlotsize + ')', [s.loc]);
+  });
+  skuSeen.forEach((n, k) => {
+    if (n > 1) push('warn', 'SKU', k.replace('|', ' @ '), 'Дубль в SKU-матрице: ' + n + ' строк на одну пару продукт/локация', [k.split('|')[1]]);
+  });
+
+  // ── Рецептуры ──
+  const pdsOwner = new Map();
+  MODEL.prodsource.forEach((p) => {
+    if (hasMaster && !skuPairs.has(p.item + '|' + p.loc)) push('warn', 'PDS/BOM', p.prodsource || p.item, 'Продукт ' + p.item + ' производится на ' + p.loc + ', но пара отсутствует в SKU-матрице', [p.loc]);
+    if (p.outputqty <= 0) push('err', 'PDS/BOM', p.prodsource || p.item, 'Базисное количество должно быть больше нуля (сейчас ' + p.outputqty + ')', [p.loc]);
+    if (p.prodsource) {
+      const prev = pdsOwner.get(p.prodsource);
+      if (prev && (prev.item !== p.item || prev.loc !== p.loc)) push('warn', 'PDS/BOM', p.prodsource, 'Один код рецепта используется для разных пар продукт/локация', [p.loc, prev.loc]);
+      else if (!prev) pdsOwner.set(p.prodsource, p);
     }
   });
 
-  document.getElementById('warnBadgeCount').textContent = MODEL.audit.length;
+  // ── Ресурсы ──
+  MODEL.res.forEach((r) => {
+    if (!r.loc) push('warn', 'Ресурсы', r.id, 'У ресурса не указана локация — он не попадёт на схему', []);
+    if (r.capacity <= 0) push('warn', 'Ресурсы', r.id, 'Нулевая или отрицательная мощность: ' + r.capacity, [r.loc]);
+  });
+
+  // ── Топология: тупики, изоляты, циклы ──
+  const outMap = new Map();
+  const inMap = new Map();
+  const allLocs = new Set();
+  MODEL.tlane.forEach((t) => {
+    allLocs.add(t.locfr); allLocs.add(t.locto);
+    if (!outMap.has(t.locfr)) outMap.set(t.locfr, new Set());
+    outMap.get(t.locfr).add(t.locto);
+    if (!inMap.has(t.locto)) inMap.set(t.locto, new Set());
+    inMap.get(t.locto).add(t.locfr);
+  });
+  MODEL.sku.forEach((s) => allLocs.add(s.loc));
+  MODEL.res.forEach((r) => { if (r.loc) allLocs.add(r.loc); });
+
+  allLocs.forEach((loc) => {
+    if (!loc) return;
+    const hasIn = inMap.has(loc);
+    const hasOut = outMap.has(loc);
+    if (!hasIn && !hasOut) push('info', 'Топология', loc, 'Изолированный узел: нет ни входящих, ни исходящих плеч', [loc]);
+    else if (hasIn && !hasOut && getNodeCategory(loc).cat !== 'Сбыт') push('info', 'Топология', loc, 'Тупик: в узел завозят, но вывоза нет (проверьте, конечная ли это точка)', [loc]);
+  });
+
+  detectCycles(outMap).forEach((cyc) => push('warn', 'Топология', cyc.join(' → '), 'Обнаружен цикл в цепочке поставок — планировщик может зациклиться', cyc));
+
+  const order = { err: 0, warn: 1, info: 2 };
+  A.sort((a, b) => order[a.type] - order[b.type] || a.cat.localeCompare(b.cat, 'ru'));
+  MODEL.audit = A;
+
+  const errs = A.filter((a) => a.type === 'err').length;
+  const badge = $('warnBadgeCount');
+  badge.textContent = A.length;
+  badge.classList.toggle('zero', A.length === 0);
+  badge.classList.toggle('warn', A.length > 0 && errs === 0);
+  $('tglWarns').title = A.length
+    ? 'Подсветить на графе ' + A.length + ' замечан.: ' + errs + ' критичных'
+    : 'Замечаний по модели нет';
 }
 
-/* ═══════════════ 4. ФИЛЬТРАЦИЯ И СВЯЗНОСТЬ ═══════════════ */
+/* Поиск циклов (итеративный DFS с цветовой разметкой — без рекурсии,
+   чтобы не переполнить стек на больших сетях). */
+function detectCycles(outMap) {
+  const color = new Map();
+  const stack = [];
+  const found = [];
+  const nodes = Array.from(outMap.keys());
+
+  for (const start of nodes) {
+    if (color.get(start)) continue;
+    const work = [{ node: start, iter: null }];
+    while (work.length) {
+      const fr = work[work.length - 1];
+      if (fr.iter === null) {
+        color.set(fr.node, 1);
+        stack.push(fr.node);
+        fr.iter = Array.from(outMap.get(fr.node) || []);
+        fr.i = 0;
+      }
+      if (fr.i < fr.iter.length) {
+        const next = fr.iter[fr.i++];
+        const c = color.get(next) || 0;
+        if (c === 0) work.push({ node: next, iter: null });
+        else if (c === 1 && found.length < 12) {
+          const at = stack.lastIndexOf(next);
+          if (at > -1) found.push(stack.slice(at).concat(next));
+        }
+      } else {
+        color.set(fr.node, 2);
+        stack.pop();
+        work.pop();
+      }
+    }
+  }
+  return found;
+}
+
+/* ═══════════════ 5. ФИЛЬТРАЦИЯ ═══════════════ */
+
 function getFilteredDataset() {
-  let effTlane = MODEL.tlane;
-  let effPds = MODEL.prodsource;
-  let effSku = MODEL.sku;
-  let effRes = MODEL.res;
+  let tlane = MODEL.tlane;
+  let pds = MODEL.prodsource;
+  let sku = MODEL.sku;
+  let res = MODEL.res;
 
-  // 1. Фильтр по продуктам
-  if (FILTERS.items.length) {
-    const set = new Set(FILTERS.items);
-    effTlane = effTlane.filter(t => set.has(t.item));
-    effPds = effPds.filter(p => set.has(p.item));
-    effSku = effSku.filter(s => set.has(s.item));
+  if (FILTERS.items.size) {
+    tlane = tlane.filter((t) => FILTERS.items.has(t.item));
+    pds = pds.filter((p) => FILTERS.items.has(p.item));
+    sku = sku.filter((s) => FILTERS.items.has(s.item));
   }
 
-  // 2. Фильтр по рецептурам PDS
-  if (FILTERS.pds.length) {
-    const setPds = new Set(FILTERS.pds);
-    const pdsItems = new Set(MODEL.prodsource.filter(p => setPds.has(p.prodsource)).map(p => p.item));
-    effPds = effPds.filter(p => setPds.has(p.prodsource));
-    effTlane = effTlane.filter(t => pdsItems.has(t.item));
-    effSku = effSku.filter(s => pdsItems.has(s.item));
+  if (FILTERS.pds.size) {
+    const pdsItems = new Set(MODEL.prodsource.filter((p) => FILTERS.pds.has(p.prodsource)).map((p) => p.item));
+    pds = pds.filter((p) => FILTERS.pds.has(p.prodsource));
+    tlane = tlane.filter((t) => pdsItems.has(t.item));
+    sku = sku.filter((s) => pdsItems.has(s.item));
   }
 
-  // 3. Фильтр по выбранным узлам (оставляем связный подграф)
-  if (FILTERS.nodes.length) {
-    const selSet = new Set(FILTERS.nodes);
-    // Ищем все плечи, которые напрямую связывают выбранные узлы
-    effTlane = effTlane.filter(t => selSet.has(t.locfr) || selSet.has(t.locto));
-    const activeLocs = new Set(effTlane.flatMap(t => [t.locfr, t.locto]));
-    FILTERS.nodes.forEach(n => activeLocs.add(n));
-
-    effPds = effPds.filter(p => activeLocs.has(p.loc));
-    effSku = effSku.filter(s => activeLocs.has(s.loc));
-    effRes = effRes.filter(r => activeLocs.has(r.loc));
+  if (FILTERS.nodes.size) {
+    tlane = tlane.filter((t) => FILTERS.nodes.has(t.locfr) || FILTERS.nodes.has(t.locto));
+    const activeLocs = new Set(tlane.flatMap((t) => [t.locfr, t.locto]));
+    FILTERS.nodes.forEach((n) => activeLocs.add(n));
+    pds = pds.filter((p) => activeLocs.has(p.loc));
+    sku = sku.filter((s) => activeLocs.has(s.loc));
+    res = res.filter((r) => activeLocs.has(r.loc));
   }
 
-  return { tlane: effTlane, pds: effPds, sku: effSku, res: effRes };
+  return { tlane, pds, sku, res };
 }
 
-/* ═══════════════ 5. ГРАФОВЫЙ ДВИЖОК CANVAS ═══════════════ */
-let GRAPH = { nodes: [], edges: [], zoom: 1, panX: 40, panY: 40, isDragging: false, dragNode: null, startX: 0, startY: 0 };
+function resetFilters() {
+  FILTERS.items.clear();
+  FILTERS.pds.clear();
+  FILTERS.nodes.clear();
+  FOCUS_NODE_ID = null;
+}
+
+const getRelatedPdsSet = (items) => new Set(MODEL.prodsource.filter((p) => items.has(p.item)).map((p) => p.prodsource));
+const getRelatedItemsSet = (pds) => new Set(MODEL.prodsource.filter((p) => pds.has(p.prodsource)).map((p) => p.item));
+
+/* ═══════════════ 6. ГРАФ: МОДЕЛЬ И РАСКЛАДКА ═══════════════ */
+
+const GRAPH = { nodes: [], edges: [], zoom: 1, panX: 40, panY: 40 };
+const PINNED = new Map(); // узлы, которые пользователь передвинул вручную
+
+const CATEGORIES = [
+  { cat: 'Поставщики', icon: '📦', color: '#ff9a3b', rank: 1, test: (l) => /^(VENDOR|SUPP|ПОСТАВЩ)/.test(l) },
+  { cat: 'Заводы', icon: '🏭', color: '#2d3f8f', rank: 2, test: (l) => /^(PLANT|FACT|ЗАВОД|ПРОИЗВ)/.test(l) },
+  { cat: 'РЦ/Склады', icon: '🏢', color: '#0d9488', rank: 3, test: (l) => /^(DISPATCH|DC|WH|РЦ|СКЛАД)/.test(l) },
+  { cat: 'Порты', icon: '⚓', color: '#3fa9c9', rank: 4, test: (l) => /^(PORT|ПОРТ)/.test(l) },
+  { cat: 'Сбыт', icon: '🛒', color: '#22bb55', rank: 5, test: (l) => /^(SALE|CUST|CLIENT|СБЫТ|КЛИЕНТ|ПОКУП)/.test(l) }
+];
+const OTHER_CAT = { cat: 'Прочие узлы', icon: '🏬', color: '#7c5cd6', rank: 3 };
 
 function getNodeCategory(loc) {
-  const l = loc.toUpperCase();
-  if (l.startsWith('PLANT') || l.startsWith('FACT')) return { cat: 'Заводы', icon: '🏭', color: '#2d3f8f', rank: 2 };
-  if (l.startsWith('DISPATCH') || l.startsWith('DC') || l.startsWith('WH')) return { cat: 'РЦ/Склады', icon: '🏢', color: '#0d9488', rank: 3 };
-  if (l.startsWith('PORT')) return { cat: 'Порты', icon: '⚓', color: '#3fa9c9', rank: 4 };
-  if (l.startsWith('VENDOR') || l.startsWith('SUPP')) return { cat: 'Поставщики', icon: '📦', color: '#ff9a3b', rank: 1 };
-  if (l.startsWith('SALE') || l.startsWith('CUST')) return { cat: 'Сбыт', icon: '🛒', color: '#22bb55', rank: 5 };
-  return { cat: 'Прочие узлы', icon: '🏬', color: '#7c5cd6', rank: 3 };
+  const l = String(loc || '').toUpperCase();
+  for (const c of CATEGORIES) if (c.test(l)) return c;
+  return OTHER_CAT;
 }
 
-function buildGraphTopology() {
+function buildGraphTopology(relayout) {
   const { tlane, pds, sku } = getFilteredDataset();
   const nodeMap = new Map();
-  const edges = [];
 
   const addNode = (id) => {
+    if (!id) return null;
     if (!nodeMap.has(id)) {
       const info = getNodeCategory(id);
-      nodeMap.set(id, { id, label: id, ...info, x: 0, y: 0, w: 125, h: 40 });
+      const label = String(id);
+      nodeMap.set(id, {
+        id, label,
+        cat: info.cat, icon: info.icon, color: info.color, rank: info.rank,
+        x: 0, y: 0,
+        w: Math.max(126, Math.min(210, 34 + label.length * 6.6)),
+        h: 42,
+        inDeg: 0, outDeg: 0
+      });
     }
     return nodeMap.get(id);
   };
 
-  tlane.forEach(t => {
+  /* Параллельные плечи (разные SKU по одному маршруту) сворачиваются
+     в одно ребро: раньше они рисовались друг поверх друга, а подписи
+     накладывались в нечитаемую кашу. */
+  const edgeMap = new Map();
+  tlane.forEach((t) => {
     const u = addNode(t.locfr);
     const v = addNode(t.locto);
-    edges.push({ from: u, to: v, label: `${t.item} (${t.mot})`, item: t.item, mot: t.mot, leadtime: t.leadtime });
+    if (!u || !v) return;
+    const key = t.locfr + '\u0000' + t.locto;
+    let e = edgeMap.get(key);
+    if (!e) {
+      e = { from: u, to: v, lanes: [], items: new Set(), mots: new Set(), minLt: Infinity, maxLt: -Infinity, selfLoop: u === v };
+      edgeMap.set(key, e);
+    }
+    e.lanes.push(t);
+    if (t.item) e.items.add(t.item);
+    e.mots.add(t.mot);
+    e.minLt = Math.min(e.minLt, t.leadtime);
+    e.maxLt = Math.max(e.maxLt, t.leadtime);
   });
 
-  // Добавляем заводы из PDS / SKU, если связей нет
-  pds.forEach(p => addNode(p.loc));
-  if (!tlane.length && sku.length) {
-    sku.forEach(s => addNode(s.loc));
-  }
+  pds.forEach((p) => addNode(p.loc));
+  if (!tlane.length && sku.length) sku.forEach((s) => addNode(s.loc));
 
   const nodes = Array.from(nodeMap.values());
+  const edges = Array.from(edgeMap.values());
 
-  // Авто-раскладка по уровням (рангам)
-  const rankGroups = {};
-  nodes.forEach(n => {
-    const r = n.rank || 3;
-    if (!rankGroups[r]) rankGroups[r] = [];
-    rankGroups[r].push(n);
-  });
-
-  const colW = 210;
-  const sortedRanks = Object.keys(rankGroups).sort((a,b) => a - b);
-  sortedRanks.forEach((r, colIdx) => {
-    const list = rankGroups[r];
-    const rowH = Math.max(65, Math.min(110, 480 / Math.max(list.length, 1)));
-    list.forEach((n, rowIdx) => {
-      n.x = 70 + colIdx * colW;
-      n.y = 70 + rowIdx * rowH;
-    });
+  edges.forEach((e) => {
+    e.label = e.items.size === 1
+      ? Array.from(e.items)[0] + ' (' + Array.from(e.mots)[0] + ')'
+      : e.items.size + ' продукт. · ' + e.lanes.length + ' плеч';
+    if (!e.selfLoop) { e.from.outDeg++; e.to.inDeg++; }
   });
 
   GRAPH.nodes = nodes;
   GRAPH.edges = edges;
+  layoutGraph(relayout);
 
-  document.getElementById('graphStat').textContent = `${nodes.length} узлов · ${edges.length} связей`;
+  $('graphStat').textContent = nodes.length + ' узлов · ' + edges.length + ' связей';
+  const empty = !nodes.length;
+  $('graphEmpty').classList.toggle('show', empty);
+  if (empty) {
+    const noData = !MODEL.tlane.length && !MODEL.sku.length;
+    $('geTitle').textContent = noData ? 'Модель пуста' : 'Под выбранными фильтрами ничего нет';
+    $('geText').innerHTML = noData
+      ? 'Загрузите книги XLSX с листами <b>sku</b>, <b>res</b>, <b>prodsource</b>, <b>tlane</b> — или начните с шаблона.'
+      : 'Ослабьте фильтры или нажмите «Сбросить фильтры» в шапке.';
+  }
 }
 
-// Направленный алгоритм выделения цепочки (Upstream поставщики + Downstream потребители)
+/* Послойная раскладка «слева направо» по фактической топологии.
+   Прежняя версия расставляла колонки по типу локации, из-за чего
+   реальная последовательность переделов не читалась. */
+function layoutGraph(relayout) {
+  const { nodes, edges } = GRAPH;
+  if (!nodes.length) return;
+  if (relayout) PINNED.clear();
+
+  const layer = new Map(nodes.map((n) => [n.id, 0]));
+  if (edges.length) {
+    // Продольная релаксация (longest path). Ограничение итераций защищает от циклов.
+    const cap = Math.min(nodes.length, 60);
+    for (let it = 0; it < cap; it++) {
+      let changed = false;
+      for (const e of edges) {
+        if (e.selfLoop) continue;
+        const want = layer.get(e.from.id) + 1;
+        if (layer.get(e.to.id) < want) { layer.set(e.to.id, want); changed = true; }
+      }
+      if (!changed) break;
+    }
+  } else {
+    nodes.forEach((n) => layer.set(n.id, n.rank));
+  }
+
+  const groups = new Map();
+  nodes.forEach((n) => {
+    n.layer = layer.get(n.id);
+    if (!groups.has(n.layer)) groups.set(n.layer, []);
+    groups.get(n.layer).push(n);
+  });
+  const layers = Array.from(groups.keys()).sort((a, b) => a - b);
+
+  // Порядок внутри слоя по барицентру соседей — меньше пересечений рёбер
+  layers.forEach((L) => groups.get(L).sort((a, b) => a.label.localeCompare(b.label, 'ru')));
+  const pos = new Map();
+  layers.forEach((L) => groups.get(L).forEach((n, i) => pos.set(n.id, i)));
+  for (let sweep = 0; sweep < 4; sweep++) {
+    const forward = sweep % 2 === 0;
+    (forward ? layers : layers.slice().reverse()).forEach((L) => {
+      const list = groups.get(L);
+      list.forEach((n) => {
+        const nb = [];
+        edges.forEach((e) => {
+          if (e.selfLoop) return;
+          if (forward && e.to.id === n.id) nb.push(pos.get(e.from.id));
+          if (!forward && e.from.id === n.id) nb.push(pos.get(e.to.id));
+        });
+        n._bary = nb.length ? nb.reduce((a, b) => a + b, 0) / nb.length : pos.get(n.id);
+      });
+      list.sort((a, b) => a._bary - b._bary);
+      list.forEach((n, i) => pos.set(n.id, i));
+    });
+  }
+
+  const GAP_X = 90;
+  const GAP_Y = 20;
+  let cursorX = 60;
+  const columnX = new Map();
+  layers.forEach((L) => {
+    const list = groups.get(L);
+    const maxW = Math.max.apply(null, list.map((n) => n.w));
+    columnX.set(L, cursorX);
+    cursorX += maxW + GAP_X;
+  });
+
+  const tallest = Math.max.apply(null, layers.map((L) => groups.get(L).length));
+  const colHeight = tallest * (42 + GAP_Y);
+  layers.forEach((L) => {
+    const list = groups.get(L);
+    const h = list.length * (42 + GAP_Y);
+    const top = 60 + (colHeight - h) / 2;
+    list.forEach((n, i) => {
+      const pin = PINNED.get(n.id);
+      if (pin) { n.x = pin.x; n.y = pin.y; }
+      else { n.x = columnX.get(L); n.y = top + i * (42 + GAP_Y); }
+    });
+  });
+}
+
+function graphBounds() {
+  if (!GRAPH.nodes.length) return null;
+  let x1 = Infinity, y1 = Infinity, x2 = -Infinity, y2 = -Infinity;
+  GRAPH.nodes.forEach((n) => {
+    x1 = Math.min(x1, n.x); y1 = Math.min(y1, n.y);
+    x2 = Math.max(x2, n.x + n.w); y2 = Math.max(y2, n.y + n.h);
+  });
+  return { x1, y1, x2, y2, w: x2 - x1, h: y2 - y1 };
+}
+
+function zoomToFit(animate) {
+  const b = graphBounds();
+  const wrap = $('graphWrap');
+  if (!b || !wrap.clientWidth) return;
+  const pad = 48;
+  const z = Math.max(0.2, Math.min(1.6, Math.min((wrap.clientWidth - pad * 2) / b.w, (wrap.clientHeight - pad * 2) / b.h)));
+  GRAPH.zoom = z;
+  GRAPH.panX = (wrap.clientWidth - b.w * z) / 2 - b.x1 * z;
+  GRAPH.panY = (wrap.clientHeight - b.h * z) / 2 - b.y1 * z;
+  void animate;
+  updateZoomLabel();
+  scheduleDraw();
+}
+const resetGraphView = () => { GRAPH.zoom = 1; GRAPH.panX = 40; GRAPH.panY = 40; PINNED.clear(); };
+const updateZoomLabel = () => { $('zoomLbl').textContent = Math.round(GRAPH.zoom * 100) + '%'; };
+
+/* Множество локаций, упомянутых в замечаниях (для режима подсветки) */
+function warnLocSet() {
+  const s = new Set();
+  MODEL.audit.forEach((a) => a.locs.forEach((l) => { if (l) s.add(l); }));
+  return s;
+}
+
+/* Цепочка поставок вверх и вниз от узла (BFS по обратным и прямым рёбрам) */
 function getLineageInfo(targetId) {
   if (!targetId) return null;
-  const upNodes = new Set([targetId]), upEdges = new Set();
-  let changed = true;
-  while (changed) {
-    changed = false;
-    GRAPH.edges.forEach((e, idx) => {
-      if (upNodes.has(e.to.id) && !upNodes.has(e.from.id)) {
-        upNodes.add(e.from.id);
-        upEdges.add(idx);
-        changed = true;
-      }
-    });
-  }
+  const inAdj = new Map();
+  const outAdj = new Map();
+  GRAPH.edges.forEach((e, i) => {
+    if (!outAdj.has(e.from.id)) outAdj.set(e.from.id, []);
+    outAdj.get(e.from.id).push({ to: e.to.id, i });
+    if (!inAdj.has(e.to.id)) inAdj.set(e.to.id, []);
+    inAdj.get(e.to.id).push({ to: e.from.id, i });
+  });
 
-  const dnNodes = new Set([targetId]), dnEdges = new Set();
-  changed = true;
-  while (changed) {
-    changed = false;
-    GRAPH.edges.forEach((e, idx) => {
-      if (dnNodes.has(e.from.id) && !dnNodes.has(e.to.id)) {
-        dnNodes.add(e.to.id);
-        dnEdges.add(idx);
-        changed = true;
-      }
-    });
-  }
+  const walk = (adj) => {
+    const nodes = new Set([targetId]);
+    const eIdx = new Set();
+    const q = [targetId];
+    while (q.length) {
+      const cur = q.shift();
+      (adj.get(cur) || []).forEach((lnk) => {
+        eIdx.add(lnk.i);
+        if (!nodes.has(lnk.to)) { nodes.add(lnk.to); q.push(lnk.to); }
+      });
+    }
+    return { nodes, eIdx };
+  };
 
+  const up = walk(inAdj);
+  const dn = walk(outAdj);
   return {
-    activeNodes: new Set([...upNodes, ...dnNodes]),
-    activeEdgeIdxs: new Set([...upEdges, ...dnEdges])
+    activeNodes: new Set([...up.nodes, ...dn.nodes]),
+    activeEdgeIdxs: new Set([...up.eIdx, ...dn.eIdx]),
+    upCount: up.nodes.size - 1,
+    dnCount: dn.nodes.size - 1
   };
 }
 
-function drawGraph() {
-  const canvas = document.getElementById('graphCanvas');
-  if (!canvas || VIEW_MODE !== 'graph') return;
-  const ctx = canvas.getContext('2d');
-  const dpr = window.devicePixelRatio || 1;
-  const w = canvas.parentElement.clientWidth;
-  const h = canvas.parentElement.clientHeight;
+/* ═══════════════ 7. ГРАФ: ОТРИСОВКА ═══════════════ */
 
-  canvas.width = w * dpr;
-  canvas.height = h * dpr;
-  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-  ctx.clearRect(0, 0, w, h);
+/* Полифилл roundRect — Safari < 16.4 и старые WebView иначе роняли весь рендер */
+if (typeof CanvasRenderingContext2D !== 'undefined' && !CanvasRenderingContext2D.prototype.roundRect) {
+  CanvasRenderingContext2D.prototype.roundRect = function (x, y, w, h, r) {
+    const rr = Math.min(typeof r === 'number' ? r : 0, w / 2, h / 2);
+    this.moveTo(x + rr, y);
+    this.arcTo(x + w, y, x + w, y + h, rr);
+    this.arcTo(x + w, y + h, x, y + h, rr);
+    this.arcTo(x, y + h, x, y, rr);
+    this.arcTo(x, y, x + w, y, rr);
+    this.closePath();
+    return this;
+  };
+}
+
+const PALETTE = {
+  light: { edge: '#c8cad6', edgeDim: '#e6e6ee', accent: '#9000ff', node: '#ffffff', nodeDim: '#f9f9fb', bd: '#dedce5', bdDim: '#e7e7ee', text: '#212529', textDim: '#b8b9c6', sub: '#8c9096', subDim: '#c8c9d4', chip: '#ffffff', err: '#f22a41' },
+  dark: { edge: '#3d3e52', edgeDim: '#23232f', accent: '#a846ff', node: '#22222c', nodeDim: '#1d1d25', bd: '#383849', bdDim: '#292936', text: '#f1f2f6', textDim: '#434354', sub: '#8f92a4', subDim: '#383846', chip: '#22222c', err: '#f84b5c' }
+};
+
+function truncateToWidth(ctx, text, maxW) {
+  if (ctx.measureText(text).width <= maxW) return text;
+  let lo = 0, hi = text.length;
+  while (lo < hi) {
+    const mid = (lo + hi + 1) >> 1;
+    if (ctx.measureText(text.slice(0, mid) + '…').width <= maxW) lo = mid; else hi = mid - 1;
+  }
+  return text.slice(0, lo) + '…';
+}
+
+/* Единая функция сцены — используется и экраном, и экспортом в PNG. */
+function renderScene(ctx, opt) {
+  const P = PALETTE[opt.isDark ? 'dark' : 'light'];
+  const lineage = opt.focusId ? getLineageInfo(opt.focusId) : null;
+  const warnLocs = opt.warnMode ? warnLocSet() : null;
 
   ctx.save();
-  ctx.translate(GRAPH.panX, GRAPH.panY);
-  ctx.scale(GRAPH.zoom, GRAPH.zoom);
+  ctx.translate(opt.panX, opt.panY);
+  ctx.scale(opt.zoom, opt.zoom);
 
-  const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
-  const lineage = FOCUS_NODE_ID ? getLineageInfo(FOCUS_NODE_ID) : null;
+  const nodeActive = (id) => (!lineage || lineage.activeNodes.has(id)) && (!warnLocs || warnLocs.has(id));
 
-  // Локации с предупреждениями (при активном тумблере)
-  const auditLocs = SHOW_WARNS_ONLY ? new Set(MODEL.audit.flatMap(a => {
-    return a.obj.split(/→|·/).map(s => s.trim());
-  })) : null;
-
-  // 1. Рисуем связи (рёбра)
+  // ── Рёбра ──
   GRAPH.edges.forEach((e, idx) => {
-    const isDirectActive = lineage ? lineage.activeEdgeIdxs.has(idx) : true;
-    const matchesAudit = !auditLocs || auditLocs.has(e.from.id) || auditLocs.has(e.to.id);
-    const isVisible = isDirectActive && matchesAudit;
-
-    const sx = e.from.x + e.from.w;
-    const sy = e.from.y + e.from.h / 2;
-    const ex = e.to.x;
-    const ey = e.to.y + e.to.h / 2;
-    const dx = Math.max(Math.abs(sx - ex) * 0.48, 28);
+    const inChain = !lineage || lineage.activeEdgeIdxs.has(idx);
+    const inWarn = !warnLocs || warnLocs.has(e.from.id) || warnLocs.has(e.to.id);
+    const active = inChain && inWarn;
+    const emphasised = active && (lineage || warnLocs);
 
     ctx.beginPath();
-    ctx.moveTo(sx, sy);
-    ctx.bezierCurveTo(sx + dx, sy, ex - dx, ey, ex, ey);
-
-    if (lineage) {
-      if (isVisible) {
-        ctx.strokeStyle = isDark ? '#a846ff' : '#9000ff';
-        ctx.lineWidth = 2.4;
-      } else {
-        // Сильно затенённая линия для несвязанных рёбер
-        ctx.strokeStyle = isDark ? '#23232f' : '#e6e6ee';
-        ctx.lineWidth = 1;
-      }
+    let mx, my, ex, ey;
+    if (e.selfLoop) {
+      const cx = e.from.x + e.from.w / 2;
+      const cy = e.from.y;
+      ctx.moveTo(cx - 16, cy);
+      ctx.bezierCurveTo(cx - 26, cy - 42, cx + 26, cy - 42, cx + 16, cy);
+      mx = cx; my = cy - 30; ex = cx + 16; ey = cy;
     } else {
-      ctx.strokeStyle = isDark ? '#3d3e52' : '#c8cad6';
-      ctx.lineWidth = 1.3;
+      const sx = e.from.x + e.from.w;
+      const sy = e.from.y + e.from.h / 2;
+      ex = e.to.x;
+      ey = e.to.y + e.to.h / 2;
+      const backwards = ex < sx;
+      const dx = backwards ? Math.max(Math.abs(sx - ex) * 0.5, 70) : Math.max(Math.abs(sx - ex) * 0.48, 28);
+      ctx.moveTo(sx, sy);
+      ctx.bezierCurveTo(sx + dx, sy, ex - dx, ey, ex, ey);
+      mx = (sx + ex) / 2;
+      my = (sy + ey) / 2;
     }
+
+    if (emphasised) { ctx.strokeStyle = active ? P.accent : P.edgeDim; ctx.lineWidth = active ? 2.4 : 1; }
+    else { ctx.strokeStyle = P.edge; ctx.lineWidth = 1.3; }
+    // Толщина отражает число свёрнутых плеч
+    if (active && e.lanes.length > 1) ctx.lineWidth += Math.min(2, Math.log2(e.lanes.length));
     ctx.stroke();
 
-    // Стрелочка направления
-    const aL = isVisible && lineage ? 7 : 5;
-    const aW = isVisible && lineage ? 4 : 3;
+    const aL = active ? 7 : 5;
+    const aW = active ? 4 : 3;
     ctx.fillStyle = ctx.strokeStyle;
     ctx.beginPath();
     ctx.moveTo(ex, ey);
@@ -1112,585 +1835,1042 @@ function drawGraph() {
     ctx.closePath();
     ctx.fill();
 
-    // Подпись ребра (плашка-чип)
-    if (GRAPH.zoom > 0.65 && isVisible) {
-      const mx = (sx + ex) / 2;
-      const my = (sy + ey) / 2;
-      ctx.font = '600 9.5px Open Sans, sans-serif';
+    e._chip = null;
+    if (opt.zoom > 0.6 && active) {
+      ctx.font = '600 9.5px "Open Sans", sans-serif';
       const tw = ctx.measureText(e.label).width + 10;
-      
-      ctx.fillStyle = isDark ? '#22222c' : '#ffffff';
+      const chip = { x: mx - tw / 2, y: my - 8, w: tw, h: 16 };
+      e._chip = chip;
+      ctx.fillStyle = P.chip;
       ctx.beginPath();
-      ctx.roundRect(mx - tw / 2, my - 8, tw, 16, 4);
+      ctx.roundRect(chip.x, chip.y, chip.w, chip.h, 4);
       ctx.fill();
-
-      ctx.strokeStyle = (lineage && isVisible) ? (isDark ? '#a846ff' : '#9000ff') : (isDark ? '#383849' : '#dedce5');
+      ctx.strokeStyle = emphasised ? P.accent : P.bd;
       ctx.lineWidth = 1;
       ctx.stroke();
-
-      ctx.fillStyle = (lineage && isVisible) ? (isDark ? '#d79aff' : '#9000ff') : (isDark ? '#c4c6d4' : '#444647');
+      ctx.fillStyle = emphasised ? P.accent : P.text;
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
       ctx.fillText(e.label, mx, my);
     }
   });
 
-  // 2. Рисуем узлы
-  GRAPH.nodes.forEach(n => {
-    const isTarget = (FOCUS_NODE_ID === n.id);
-    const isChainActive = lineage ? lineage.activeNodes.has(n.id) : true;
-    const matchesAudit = !auditLocs || auditLocs.has(n.id);
-    const isNodeHighlighted = isChainActive && matchesAudit;
+  // ── Узлы ──
+  GRAPH.nodes.forEach((n) => {
+    const isTarget = opt.focusId === n.id;
+    const isHovered = opt.hoverId === n.id;
+    const active = nodeActive(n.id);
+    const flagged = warnLocs && warnLocs.has(n.id);
 
-    if (lineage && !isNodeHighlighted) {
-      // ════════════ ЗАТЕНЁННЫЙ УЗЕЛ (НЕ В ФОКУСЕ) ════════════
-      ctx.fillStyle = isDark ? '#1d1d25' : '#f9f9fb';
-      ctx.beginPath();
-      ctx.roundRect(n.x, n.y, n.w, n.h, 5);
-      ctx.fill();
-
-      ctx.strokeStyle = isDark ? '#292936' : '#e7e7ee';
-      ctx.lineWidth = 1;
-      ctx.stroke();
-
-      // Мягкий, едва заметный серый текст
-      ctx.fillStyle = isDark ? '#434354' : '#b8b9c6';
-      ctx.font = '600 11px Open Sans, sans-serif';
-      ctx.textAlign = 'left';
-      ctx.textBaseline = 'alphabetic';
-      const text = n.label.length > 13 ? n.label.slice(0, 12) + '…' : n.label;
-      ctx.fillText(text, n.x + 10, n.y + 18);
-
-      ctx.font = '400 9.5px Open Sans, sans-serif';
-      ctx.fillStyle = isDark ? '#383846' : '#c8c9d4';
-      ctx.fillText(n.cat, n.x + 10, n.y + 31);
-      return;
-    }
-
-    // ════════════ АКТИВНЫЙ / СВЯЗАННЫЙ УЗЕЛ ════════════
-    ctx.fillStyle = isDark ? '#22222c' : '#ffffff';
     ctx.beginPath();
     ctx.roundRect(n.x, n.y, n.w, n.h, 5);
+    ctx.fillStyle = active ? P.node : P.nodeDim;
     ctx.fill();
 
-    if (isTarget) {
-      ctx.strokeStyle = isDark ? '#a846ff' : '#9000ff';
-      ctx.lineWidth = 2.4;
-    } else if (lineage && isNodeHighlighted) {
-      ctx.strokeStyle = isDark ? '#a846ff' : '#9000ff';
-      ctx.lineWidth = 1.8;
-    } else {
-      ctx.strokeStyle = isDark ? '#383849' : '#dedce5';
-      ctx.lineWidth = 1;
-    }
+    if (isTarget) { ctx.strokeStyle = P.accent; ctx.lineWidth = 2.6; }
+    else if (flagged && active) { ctx.strokeStyle = P.err; ctx.lineWidth = 2; }
+    else if (active && (lineage || warnLocs)) { ctx.strokeStyle = P.accent; ctx.lineWidth = 1.8; }
+    else if (isHovered) { ctx.strokeStyle = P.accent; ctx.lineWidth = 1.6; }
+    else { ctx.strokeStyle = active ? P.bd : P.bdDim; ctx.lineWidth = 1; }
     ctx.stroke();
 
-    // Маркер категории слева
-    ctx.fillStyle = n.color;
+    ctx.fillStyle = active ? n.color : P.bdDim;
     ctx.fillRect(n.x, n.y + 4, 3.5, n.h - 8);
 
-    // Иконка
-    ctx.font = '12px Open Sans, sans-serif';
     ctx.textAlign = 'left';
     ctx.textBaseline = 'alphabetic';
-    ctx.fillText(n.icon, n.x + 8, n.y + 24);
+    if (active) {
+      ctx.font = '12px "Open Sans", sans-serif';
+      ctx.fillStyle = P.text;
+      ctx.fillText(n.icon, n.x + 8, n.y + 25);
+    }
 
-    // Заголовок
-    ctx.fillStyle = isDark ? '#f1f2f6' : '#212529';
-    ctx.font = '700 11px Open Sans, sans-serif';
-    const text = n.label.length > 13 ? n.label.slice(0, 12) + '…' : n.label;
-    ctx.fillText(text, n.x + 26, n.y + 17);
+    ctx.font = '700 11px "Open Sans", sans-serif';
+    ctx.fillStyle = active ? P.text : P.textDim;
+    const tx = active ? n.x + 26 : n.x + 10;
+    ctx.fillText(truncateToWidth(ctx, n.label, n.x + n.w - tx - 8), tx, n.y + 18);
 
-    // Категория
-    ctx.fillStyle = isDark ? '#8f92a4' : '#8c9096';
-    ctx.font = '400 9.5px Open Sans, sans-serif';
-    ctx.fillText(n.cat, n.x + 26, n.y + 31);
+    ctx.font = '400 9.5px "Open Sans", sans-serif';
+    ctx.fillStyle = active ? P.sub : P.subDim;
+    const meta = n.cat + (n.inDeg || n.outDeg ? '  ↓' + n.inDeg + ' ↑' + n.outDeg : '');
+    ctx.fillText(truncateToWidth(ctx, meta, n.x + n.w - tx - 8), tx, n.y + 32);
   });
 
   ctx.restore();
 }
-/* ═══════════════ 6. РЕЖИМ МАТРИЦЫ ═══════════════ */
-function renderMatrixView() {
-  const host = document.getElementById('matrixTableHost');
-  const { tlane } = getFilteredDataset();
-  
-  const fromLocs = [...new Set(tlane.map(t => t.locfr))].sort();
-  const toLocs = [...new Set(tlane.map(t => t.locto))].sort();
 
-  if (!fromLocs.length || !toLocs.length) {
+let rafId = null;
+let HOVER_NODE_ID = null;
+let lastCanvasSize = { w: 0, h: 0, dpr: 0 };
+
+function drawGraph() {
+  const canvas = $('graphCanvas');
+  if (!canvas || VIEW_MODE !== 'graph') return;
+  const wrap = canvas.parentElement;
+  const w = wrap.clientWidth;
+  const h = wrap.clientHeight;
+  if (!w || !h) return;
+  const dpr = window.devicePixelRatio || 1;
+
+  const ctx = canvas.getContext('2d');
+  // Пересоздаём буфер только при реальном изменении размера:
+  // присваивание canvas.width на каждом кадре сбрасывало весь контекст.
+  if (lastCanvasSize.w !== w || lastCanvasSize.h !== h || lastCanvasSize.dpr !== dpr) {
+    canvas.width = Math.round(w * dpr);
+    canvas.height = Math.round(h * dpr);
+    canvas.style.width = w + 'px';
+    canvas.style.height = h + 'px';
+    lastCanvasSize = { w, h, dpr };
+  }
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  ctx.clearRect(0, 0, w, h);
+
+  renderScene(ctx, {
+    zoom: GRAPH.zoom, panX: GRAPH.panX, panY: GRAPH.panY,
+    isDark: document.documentElement.getAttribute('data-theme') === 'dark',
+    focusId: FOCUS_NODE_ID, warnMode: WARN_HIGHLIGHT, hoverId: HOVER_NODE_ID
+  });
+}
+
+function scheduleDraw() {
+  if (rafId !== null) return;
+  rafId = requestAnimationFrame(() => { rafId = null; drawGraph(); });
+}
+
+/* ═══════════════ 8. ГРАФ: ВЗАИМОДЕЙСТВИЕ ═══════════════ */
+
+const canvasEl = $('graphCanvas');
+const pointers = new Map();
+let dragNode = null;
+let panning = false;
+let panStart = { x: 0, y: 0 };
+let downAt = 0;
+let moved = false;
+let pinchStart = null;
+
+const toWorld = (clientX, clientY) => {
+  const r = canvasEl.getBoundingClientRect();
+  return { x: (clientX - r.left - GRAPH.panX) / GRAPH.zoom, y: (clientY - r.top - GRAPH.panY) / GRAPH.zoom };
+};
+const hitNode = (p) => {
+  for (let i = GRAPH.nodes.length - 1; i >= 0; i--) {
+    const n = GRAPH.nodes[i];
+    if (p.x >= n.x && p.x <= n.x + n.w && p.y >= n.y && p.y <= n.y + n.h) return n;
+  }
+  return null;
+};
+const hitEdge = (p) => GRAPH.edges.find((e) => e._chip && p.x >= e._chip.x && p.x <= e._chip.x + e._chip.w && p.y >= e._chip.y && p.y <= e._chip.y + e._chip.h) || null;
+
+canvasEl.addEventListener('pointerdown', (e) => {
+  canvasEl.setPointerCapture(e.pointerId);
+  pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+  if (pointers.size === 2) {
+    const pts = Array.from(pointers.values());
+    pinchStart = { dist: Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y), zoom: GRAPH.zoom };
+    dragNode = null;
+    panning = false;
+    return;
+  }
+  downAt = Date.now();
+  moved = false;
+  const p = toWorld(e.clientX, e.clientY);
+  const hit = hitNode(p);
+  if (hit) { dragNode = hit; dragNode._grabDX = p.x - hit.x; dragNode._grabDY = p.y - hit.y; }
+  else { panning = true; panStart = { x: e.clientX - GRAPH.panX, y: e.clientY - GRAPH.panY }; }
+});
+
+canvasEl.addEventListener('pointermove', (e) => {
+  if (pointers.has(e.pointerId)) pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+
+  if (pointers.size === 2 && pinchStart) {
+    const pts = Array.from(pointers.values());
+    const d = Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y);
+    GRAPH.zoom = Math.max(0.15, Math.min(3, pinchStart.zoom * (d / pinchStart.dist)));
+    updateZoomLabel();
+    scheduleDraw();
+    return;
+  }
+
+  if (dragNode) {
+    moved = true;
+    const p = toWorld(e.clientX, e.clientY);
+    dragNode.x = p.x - dragNode._grabDX;
+    dragNode.y = p.y - dragNode._grabDY;
+    PINNED.set(dragNode.id, { x: dragNode.x, y: dragNode.y });
+    hideTip();
+    scheduleDraw();
+    return;
+  }
+  if (panning) {
+    moved = true;
+    GRAPH.panX = e.clientX - panStart.x;
+    GRAPH.panY = e.clientY - panStart.y;
+    hideTip();
+    scheduleDraw();
+    return;
+  }
+
+  // Наведение: курсор и тултип
+  const p = toWorld(e.clientX, e.clientY);
+  const n = hitNode(p);
+  const edge = n ? null : hitEdge(p);
+  canvasEl.style.cursor = n || edge ? 'pointer' : 'grab';
+  if (n) { showNodeTip(n, e.clientX, e.clientY); if (HOVER_NODE_ID !== n.id) { HOVER_NODE_ID = n.id; scheduleDraw(); } }
+  else if (edge) { showEdgeTip(edge, e.clientX, e.clientY); if (HOVER_NODE_ID) { HOVER_NODE_ID = null; scheduleDraw(); } }
+  else { hideTip(); if (HOVER_NODE_ID) { HOVER_NODE_ID = null; scheduleDraw(); } }
+});
+
+function endPointer(e) {
+  pointers.delete(e.pointerId);
+  if (pointers.size < 2) pinchStart = null;
+
+  // Клик (без перетаскивания) — переключение фокуса на цепочке
+  if (!moved && Date.now() - downAt < 400 && pointers.size === 0) {
+    const p = toWorld(e.clientX, e.clientY);
+    const hit = hitNode(p);
+    FOCUS_NODE_ID = hit ? (FOCUS_NODE_ID === hit.id ? null : hit.id) : null;
+    refreshUI();
+  }
+  dragNode = null;
+  panning = false;
+}
+canvasEl.addEventListener('pointerup', endPointer);
+canvasEl.addEventListener('pointercancel', endPointer);
+canvasEl.addEventListener('pointerleave', () => { hideTip(); HOVER_NODE_ID = null; scheduleDraw(); });
+
+/* Масштабирование к позиции курсора, а не к левому верхнему углу */
+canvasEl.addEventListener('wheel', (e) => {
+  e.preventDefault();
+  const r = canvasEl.getBoundingClientRect();
+  const cx = e.clientX - r.left;
+  const cy = e.clientY - r.top;
+  const before = { x: (cx - GRAPH.panX) / GRAPH.zoom, y: (cy - GRAPH.panY) / GRAPH.zoom };
+  const factor = e.deltaY < 0 ? 1.1 : 1 / 1.1;
+  GRAPH.zoom = Math.max(0.15, Math.min(3, GRAPH.zoom * factor));
+  GRAPH.panX = cx - before.x * GRAPH.zoom;
+  GRAPH.panY = cy - before.y * GRAPH.zoom;
+  updateZoomLabel();
+  hideTip();
+  scheduleDraw();
+}, { passive: false });
+
+canvasEl.addEventListener('dblclick', (e) => {
+  const p = toWorld(e.clientX, e.clientY);
+  const hit = hitNode(p);
+  if (hit) { PINNED.delete(hit.id); layoutGraph(false); scheduleDraw(); }
+});
+
+/* ── Тултипы (элемент #graphTip раньше существовал, но никогда не показывался) ── */
+const tipEl = $('graphTip');
+function placeTip(x, y) {
+  tipEl.style.display = 'block';
+  const r = tipEl.getBoundingClientRect();
+  let left = x + 14;
+  let top = y + 14;
+  if (left + r.width > window.innerWidth - 8) left = x - r.width - 14;
+  if (top + r.height > window.innerHeight - 8) top = y - r.height - 14;
+  tipEl.style.left = Math.max(8, left) + 'px';
+  tipEl.style.top = Math.max(8, top) + 'px';
+}
+const hideTip = () => { tipEl.style.display = 'none'; };
+const tipRow = (k, v) => '<div class="tip-row"><span>' + esc(k) + '</span><span>' + esc(v) + '</span></div>';
+
+function showNodeTip(n, x, y) {
+  const ds = getFilteredDataset();
+  const skuHere = ds.sku.filter((s) => s.loc === n.id);
+  const resHere = ds.res.filter((r) => r.loc === n.id);
+  const pdsHere = ds.pds.filter((p) => p.loc === n.id);
+  const warns = MODEL.audit.filter((a) => a.locs.includes(n.id));
+  let html = '<div class="tip-hd">' + esc(n.icon + ' ' + n.label) + '</div>';
+  html += tipRow('Категория', n.cat);
+  html += tipRow('Связи', 'вход ' + n.inDeg + ' · выход ' + n.outDeg);
+  html += tipRow('Продуктов (SKU)', skuHere.length);
+  if (resHere.length) html += tipRow('Ресурсов', resHere.length);
+  if (pdsHere.length) html += tipRow('Рецептур', pdsHere.length);
+  if (warns.length) {
+    html += '<div class="tip-sep"></div>';
+    html += tipRow('Замечаний', warns.length);
+    html += '<div class="tip-hint">' + esc(warns[0].msg.slice(0, 110)) + '</div>';
+  }
+  html += '<div class="tip-hint">Клик — выделить цепочку · Перетащить — закрепить · 2 клика — открепить</div>';
+  tipEl.innerHTML = html;
+  placeTip(x, y);
+}
+
+function showEdgeTip(e, x, y) {
+  let html = '<div class="tip-hd">' + esc(e.from.label + ' → ' + e.to.label) + '</div>';
+  html += tipRow('Плеч', e.lanes.length);
+  html += tipRow('Продуктов', e.items.size);
+  html += tipRow('Транспорт', Array.from(e.mots).join(', '));
+  html += tipRow('Срок доставки', e.minLt === e.maxLt ? e.minLt + ' дн.' : e.minLt + '–' + e.maxLt + ' дн.');
+  const preview = e.lanes.slice(0, 6).map((l) => l.item + ' · ' + l.mot + ' · ' + l.leadtime + ' дн.');
+  html += '<div class="tip-sep"></div><div class="tip-hint">' + preview.map(esc).join('<br>') + (e.lanes.length > 6 ? '<br>… ещё ' + (e.lanes.length - 6) : '') + '</div>';
+  tipEl.innerHTML = html;
+  placeTip(x, y);
+}
+
+/* ═══════════════ 9. МАТРИЦА ═══════════════ */
+
+function renderMatrixView() {
+  const host = $('matrixTableHost');
+  const { tlane } = getFilteredDataset();
+
+  if (!tlane.length) {
     host.innerHTML = '<div style="padding:20px;color:var(--scp-text-3)">Нет транспортных связей под текущими фильтрами</div>';
     return;
   }
 
-  const mat = {};
-  tlane.forEach(t => {
-    const k = `${t.locfr}__${t.locto}`;
-    if (!mat[k]) mat[k] = [];
-    mat[k].push(t);
+  const fromLocs = [...new Set(tlane.map((t) => t.locfr))].sort((a, b) => a.localeCompare(b, 'ru'));
+  const toLocs = [...new Set(tlane.map((t) => t.locto))].sort((a, b) => a.localeCompare(b, 'ru'));
+
+  // Защита от подвисания браузера на промышленных объёмах
+  const LIMIT = 120;
+  const truncated = fromLocs.length > LIMIT || toLocs.length > LIMIT;
+  const rows = fromLocs.slice(0, LIMIT);
+  const cols = toLocs.slice(0, LIMIT);
+
+  const mat = new Map();
+  tlane.forEach((t) => {
+    const k = t.locfr + '\u0000' + t.locto;
+    if (!mat.has(k)) mat.set(k, []);
+    mat.get(k).push(t);
   });
 
-  let html = '<table class="matrix-tbl"><thead><tr><th>Откуда \\ Куда</th>';
-  toLocs.forEach(to => html += `<th>${to}</th>`);
-  html += '</tr></thead><tbody>';
+  const parts = ['<table class="matrix-tbl"><thead><tr><th class="row-hd">Откуда \\ Куда</th>'];
+  cols.forEach((to) => parts.push('<th>' + esc(to) + '</th>'));
+  parts.push('</tr></thead><tbody>');
 
-  fromLocs.forEach(fr => {
-    html += `<tr><td style="font-weight:600;background:var(--scp-surface-2);text-align:left">${fr}</td>`;
-    toLocs.forEach(to => {
-      const lanes = mat[`${fr}__${to}`];
+  rows.forEach((fr) => {
+    parts.push('<tr><td class="row-hd">' + esc(fr) + '</td>');
+    cols.forEach((to) => {
+      const lanes = mat.get(fr + '\u0000' + to);
       if (lanes && lanes.length) {
-        const title = lanes.map(l => `${l.item} (${l.mot}) - ${l.leadtime}дн`).join('\n');
-        html += `<td class="matrix-cell-active" title="${title}">${lanes.length} плеч</td>`;
+        const title = lanes.slice(0, 12).map((l) => l.item + ' (' + l.mot + ') — ' + l.leadtime + ' дн.').join('\n');
+        parts.push('<td class="matrix-cell-active" role="button" tabindex="0" data-fr="' + esc(fr) + '" data-to="' + esc(to) + '" title="' + esc(title) + '">' + lanes.length + '</td>');
       } else {
-        html += `<td style="color:var(--scp-text-dis)">—</td>`;
+        parts.push('<td style="color:var(--scp-text-dis)">—</td>');
       }
     });
-    html += '</tr>';
+    parts.push('</tr>');
   });
-  html += '</tbody></table>';
+  parts.push('</tbody></table>');
+  if (truncated) parts.push('<div class="row-more">Показаны первые ' + LIMIT + ' локаций по каждой оси из ' + fromLocs.length + '×' + toLocs.length + '. Уточните фильтры.</div>');
 
-  host.innerHTML = html;
+  host.innerHTML = parts.join('');
 }
 
-/* ═══════════════ 7. ТАБЛИЦЫ И ИНТЕРФЕЙС ═══════════════ */
+/* Клик по ячейке матрицы больше не «мёртвый»: ведёт к цепочке узла */
+$('matrixTableHost').addEventListener('click', (e) => {
+  const cell = e.target.closest('.matrix-cell-active');
+  if (!cell) return;
+  FOCUS_NODE_ID = cell.dataset.fr;
+  switchMode('graph');
+  toast('Открыта цепочка узла ' + cell.dataset.fr, 'info');
+});
+
+/* ═══════════════ 10. ЛЕВАЯ ПАНЕЛЬ И ФИЛЬТРЫ ═══════════════ */
+
+function allNetworkLocations() {
+  const s = new Set();
+  MODEL.sku.forEach((x) => x.loc && s.add(x.loc));
+  MODEL.tlane.forEach((t) => { if (t.locfr) s.add(t.locfr); if (t.locto) s.add(t.locto); });
+  MODEL.prodsource.forEach((p) => p.loc && s.add(p.loc));
+  MODEL.res.forEach((r) => r.loc && s.add(r.loc));
+  return [...s].sort((a, b) => a.localeCompare(b, 'ru'));
+}
+
 function renderSidebarNodes() {
-  const treeEl = document.getElementById('sbTree');
-  const q = (document.getElementById('sbSearchInput').value || '').toLowerCase();
-  
-  const allLocs = [...new Set([...MODEL.sku.map(s=>s.loc), ...MODEL.tlane.flatMap(t=>[t.locfr, t.locto])])].sort();
-  
-  const groups = {};
-  allLocs.forEach(loc => {
+  const treeEl = $('sbTree');
+  const q = ($('sbSearchInput').value || '').trim().toLowerCase();
+  const groups = new Map();
+
+  allNetworkLocations().forEach((loc) => {
     if (q && !loc.toLowerCase().includes(q)) return;
-    const catInfo = getNodeCategory(loc);
-    if (!groups[catInfo.cat]) groups[catInfo.cat] = [];
-    groups[catInfo.cat].push({ id: loc, ...catInfo });
+    const info = getNodeCategory(loc);
+    if (!groups.has(info.cat)) groups.set(info.cat, { rank: info.rank, icon: info.icon, list: [] });
+    groups.get(info.cat).list.push(loc);
   });
 
-  let html = '';
-  Object.keys(groups).forEach(cat => {
-    html += `<div class="sb-grp-title"><span>${cat}</span><span>${groups[cat].length}</span></div>`;
-    groups[cat].forEach(n => {
-      const isChecked = FILTERS.nodes.includes(n.id);
-      html += `<label class="sb-item ${isChecked ? 'on' : ''}">
-        <input type="checkbox" ${isChecked ? 'checked' : ''} onchange="toggleFilterNode('${n.id}')">
-        <span class="sb-item-icon">${n.icon}</span>
-        <span>${n.id}</span>
-      </label>`;
+  const cats = [...groups.entries()].sort((a, b) => a[1].rank - b[1].rank);
+  const parts = [];
+  cats.forEach(([cat, g]) => {
+    parts.push('<div class="sb-grp-title"><span>' + esc(cat) + '</span><span>' + g.list.length + '</span></div>');
+    g.list.forEach((id) => {
+      const on = FILTERS.nodes.has(id);
+      // data-атрибуты вместо inline onchange: имя локации с кавычкой
+      // больше не ломает разметку и не может выполнить код.
+      parts.push(
+        '<label class="sb-item' + (on ? ' on' : '') + '">' +
+        '<input type="checkbox" data-node="' + esc(id) + '"' + (on ? ' checked' : '') + '>' +
+        '<span class="sb-item-icon" aria-hidden="true">' + esc(g.icon) + '</span>' +
+        '<span title="' + esc(id) + '">' + esc(id) + '</span></label>'
+      );
     });
   });
 
-  treeEl.innerHTML = html || '<div style="padding:16px;text-align:center;color:var(--scp-text-3)">Узлов не найдено</div>';
+  treeEl.innerHTML = parts.join('') || '<div style="padding:16px;text-align:center;color:var(--scp-text-3)">Узлов не найдено</div>';
 }
 
+$('sbTree').addEventListener('change', (e) => {
+  const id = e.target.dataset.node;
+  if (!id) return;
+  if (FILTERS.nodes.has(id)) FILTERS.nodes.delete(id); else FILTERS.nodes.add(id);
+  refreshUI();
+});
+
+const getAllItemsUniverse = () => [...new Set([
+  ...MODEL.sku.map((s) => s.item),
+  ...MODEL.tlane.map((t) => t.item),
+  ...MODEL.prodsource.map((p) => p.item)
+])].filter(Boolean).sort((a, b) => a.localeCompare(b, 'ru'));
+
 function renderFilterPills() {
-  // 1. Продукты — собираем из всех источников данных
-  const allItems = [...new Set([
-    ...MODEL.sku.map(s => s.item),
-    ...MODEL.tlane.map(t => t.item),
-    ...MODEL.prodsource.map(p => p.item)
-  ])].filter(Boolean).sort();
-  const listItemsEl = document.getElementById('listItems');
-  const qI = (document.getElementById('qItem').value || '').toLowerCase();
-  
-  // Кросс-фильтрация: при выбранных спецификациях показываем только выпускаемые ими продукты
-  const visibleItems = FILTERS.pds.length
-    ? allItems.filter(it => getRelatedItemsSet(FILTERS.pds).has(it))
+  // ── Продукты ──
+  const allItems = getAllItemsUniverse();
+  const qI = ($('qItem').value || '').trim().toLowerCase();
+  const visibleItems = FILTERS.pds.size
+    ? allItems.filter((it) => getRelatedItemsSet(FILTERS.pds).has(it))
     : allItems;
 
-  let iHtml = '';
-  visibleItems.filter(it => !qI || it.toLowerCase().includes(qI)).forEach(it => {
-    const on = FILTERS.items.includes(it);
-    iHtml += `<label class="pop-item ${on ? 'on' : ''}">
-      <input type="checkbox" ${on ? 'checked' : ''} onchange="toggleFilterItem('${it}')">
-      <span>${it}</span>
-    </label>`;
+  const iRows = visibleItems.filter((it) => !qI || it.toLowerCase().includes(qI));
+  const iParts = iRows.slice(0, 500).map((it) => {
+    const on = FILTERS.items.has(it);
+    return '<label class="pop-item' + (on ? ' on' : '') + '"><input type="checkbox" data-item="' + esc(it) + '"' + (on ? ' checked' : '') + '><span title="' + esc(it) + '">' + esc(it) + '</span></label>';
   });
-  listItemsEl.innerHTML = iHtml || '<div style="padding:8px;color:var(--scp-text-3)">Не найдено</div>';
-  
-  const bI = document.getElementById('badgeItem');
-  bI.textContent = FILTERS.items.length;
-  bI.classList.toggle('hide', !FILTERS.items.length);
-  document.getElementById('lblCurItem').textContent = FILTERS.items.length === 0 ? 'Продукты: Все' : (FILTERS.items.length === 1 ? FILTERS.items[0] : `Продукты (${FILTERS.items.length})`);
-  document.getElementById('bItemPop').classList.toggle('on', !!FILTERS.items.length);
+  if (iRows.length > 500) iParts.push('<div class="row-more">Показаны 500 из ' + iRows.length + ' — уточните поиск</div>');
+  $('listItems').innerHTML = iParts.join('') || '<div style="padding:8px;color:var(--scp-text-3)">Не найдено</div>';
 
-  // 2. Рецептуры PDS
-  const allPds = [...new Set(MODEL.prodsource.map(p => p.prodsource))].sort();
-  const listPdsEl = document.getElementById('listPds');
-  const qP = (document.getElementById('qPds').value || '').toLowerCase();
+  const bI = $('badgeItem');
+  bI.textContent = FILTERS.items.size;
+  bI.classList.toggle('hide', !FILTERS.items.size);
+  $('lblCurItem').textContent = FILTERS.items.size === 0
+    ? 'Продукты: Все'
+    : (FILTERS.items.size === 1 ? [...FILTERS.items][0] : 'Продукты (' + FILTERS.items.size + ')');
+  $('bItemPop').classList.toggle('on', FILTERS.items.size > 0);
 
-  // Кросс-фильтрация: при выбранных продуктах показываем только их спецификации
-  const visiblePds = FILTERS.items.length
-    ? (() => { const rel = getRelatedPdsSet(FILTERS.items); return allPds.filter(p => rel.has(p)); })()
+  // ── Спецификации ──
+  const allPds = [...new Set(MODEL.prodsource.map((p) => p.prodsource))].filter(Boolean).sort((a, b) => a.localeCompare(b, 'ru'));
+  const qP = ($('qPds').value || '').trim().toLowerCase();
+  const visiblePds = FILTERS.items.size
+    ? (() => { const rel = getRelatedPdsSet(FILTERS.items); return allPds.filter((p) => rel.has(p)); })()
     : allPds;
 
-  let pHtml = '';
-  visiblePds.filter(p => !qP || p.toLowerCase().includes(qP)).forEach(p => {
-    const on = FILTERS.pds.includes(p);
-    pHtml += `<label class="pop-item ${on ? 'on' : ''}">
-      <input type="checkbox" ${on ? 'checked' : ''} onchange="toggleFilterPds('${p}')">
-      <span>${p}</span>
-    </label>`;
+  const pRows = visiblePds.filter((p) => !qP || p.toLowerCase().includes(qP));
+  const pParts = pRows.slice(0, 500).map((p) => {
+    const on = FILTERS.pds.has(p);
+    return '<label class="pop-item' + (on ? ' on' : '') + '"><input type="checkbox" data-pds="' + esc(p) + '"' + (on ? ' checked' : '') + '><span title="' + esc(p) + '">' + esc(p) + '</span></label>';
   });
-  if (!pHtml) {
-    pHtml = MODEL.prodsource.length
-      ? '<div style="padding:8px;color:var(--scp-text-3)">Не найдено</div>'
-      : '<div style="padding:8px;color:var(--scp-text-3)">Файл prodsource не загружен — список спецификаций пуст</div>';
+  if (pRows.length > 500) pParts.push('<div class="row-more">Показаны 500 из ' + pRows.length + ' — уточните поиск</div>');
+  $('listPds').innerHTML = pParts.join('') || (MODEL.prodsource.length
+    ? '<div style="padding:8px;color:var(--scp-text-3)">Не найдено</div>'
+    : '<div style="padding:8px;color:var(--scp-text-3)">Лист prodsource не загружен — список спецификаций пуст</div>');
+
+  const bP = $('badgePds');
+  bP.textContent = FILTERS.pds.size;
+  bP.classList.toggle('hide', !FILTERS.pds.size);
+  const firstPds = FILTERS.pds.size === 1 ? [...FILTERS.pds][0] : '';
+  $('lblCurPds').textContent = FILTERS.pds.size === 0
+    ? 'Спецификации: Все'
+    : (FILTERS.pds.size === 1 ? (firstPds.length > 14 ? firstPds.slice(0, 13) + '…' : firstPds) : 'Спецификации (' + FILTERS.pds.size + ')');
+  $('bPdsPop').classList.toggle('on', FILTERS.pds.size > 0);
+
+  $('bResetAllFilters').disabled = !(FILTERS.items.size || FILTERS.pds.size || FILTERS.nodes.size || FOCUS_NODE_ID);
+}
+
+$('listItems').addEventListener('change', (e) => {
+  const it = e.target.dataset.item;
+  if (!it) return;
+  if (FILTERS.items.has(it)) FILTERS.items.delete(it); else FILTERS.items.add(it);
+  if (FILTERS.items.size) {
+    const rel = getRelatedPdsSet(FILTERS.items);
+    [...FILTERS.pds].forEach((p) => { if (!rel.has(p)) FILTERS.pds.delete(p); });
   }
-  listPdsEl.innerHTML = pHtml;
+  refreshUI();
+});
 
-  const bP = document.getElementById('badgePds');
-  bP.textContent = FILTERS.pds.length;
-  bP.classList.toggle('hide', !FILTERS.pds.length);
-  document.getElementById('lblCurPds').textContent = FILTERS.pds.length === 0 ? 'Спецификации: Все' : (FILTERS.pds.length === 1 ? FILTERS.pds[0].slice(0,12)+'…' : `Спецификации (${FILTERS.pds.length})`);
-  document.getElementById('bPdsPop').classList.toggle('on', !!FILTERS.pds.length);
+$('listPds').addEventListener('change', (e) => {
+  const p = e.target.dataset.pds;
+  if (!p) return;
+  if (FILTERS.pds.has(p)) FILTERS.pds.delete(p); else FILTERS.pds.add(p);
+  if (FILTERS.pds.size) {
+    const rel = getRelatedItemsSet(FILTERS.pds);
+    [...FILTERS.items].forEach((it) => { if (!rel.has(it)) FILTERS.items.delete(it); });
+  }
+  refreshUI();
+});
 
-  // Кнопка сброса
-  const hasFilters = FILTERS.items.length || FILTERS.pds.length || FILTERS.nodes.length || FOCUS_NODE_ID;
-  document.getElementById('bResetAllFilters').disabled = !hasFilters;
+/* ═══════════════ 11. НИЖНИЕ ТАБЛИЦЫ ═══════════════ */
+
+const TABLE_DEFS = {
+  sku: {
+    cols: [
+      { k: 'item', t: 'Продукт (item)', bold: true },
+      { k: 'loc', t: 'Локация (loc)', link: true },
+      { k: 'res', t: 'Складской ресурс' },
+      { k: 'minlotsize', t: 'Мин. партия', num: true },
+      { k: 'maxlotsize', t: 'Макс. партия', num: true }
+    ],
+    rows: (ds) => ds.sku
+  },
+  tlane: {
+    cols: [
+      { k: 'item', t: 'Продукт', bold: true },
+      { k: 'locfr', t: 'Откуда (locfr)', link: true },
+      { k: 'locto', t: 'Куда (locto)', link: true },
+      { k: 'mot', t: 'Транспорт (mot)', tag: 'ok' },
+      { k: 'leadtime', t: 'Срок доставки, дн.', num: true }
+    ],
+    rows: (ds) => ds.tlane
+  },
+  res: {
+    cols: [
+      { k: 'id', t: 'Код ресурса', bold: true },
+      { k: 'loc', t: 'Локация', link: true },
+      { k: 'name', t: 'Наименование / Передел' },
+      { k: 'type', t: 'Тип' },
+      { k: 'capuom', t: 'Ед. изм.' },
+      { k: 'capacity', t: 'Мощность/сут', num: true }
+    ],
+    rows: (ds) => ds.res
+  },
+  prodsource: {
+    cols: [
+      { k: 'prodsource', t: 'Рецепт / PDS', code: true },
+      { k: 'item', t: 'Выпускаемый продукт', bold: true },
+      { k: 'loc', t: 'Завод', link: true },
+      { k: 'prodver', t: 'Версия' },
+      { k: 'prio', t: 'Приоритет', num: true },
+      { k: 'outputqty', t: 'Норма', num: true }
+    ],
+    rows: (ds) => ds.pds
+  },
+  audit: {
+    cols: [
+      { k: 'type', t: 'Уровень', level: true },
+      { k: 'cat', t: 'Категория' },
+      { k: 'obj', t: 'Объект', bold: true },
+      { k: 'msg', t: 'Суть проверки', wrap: true }
+    ],
+    rows: () => MODEL.audit
+  }
+};
+const LEVEL_LABEL = { err: 'Критично', warn: 'Внимание', info: 'Инфо' };
+
+function currentTableRows() {
+  const ds = getFilteredDataset();
+  let rows = TABLE_DEFS[ACTIVE_TAB].rows(ds);
+  if (TABLE_QUERY) {
+    const q = TABLE_QUERY.toLowerCase();
+    const cols = TABLE_DEFS[ACTIVE_TAB].cols;
+    rows = rows.filter((r) => cols.some((c) => String(r[c.k] === undefined ? '' : r[c.k]).toLowerCase().includes(q)));
+  }
+  const s = SORT_STATE[ACTIVE_TAB];
+  if (s) {
+    const dir = s.dir === 'asc' ? 1 : -1;
+    rows = rows.slice().sort((a, b) => {
+      const av = a[s.k], bv = b[s.k];
+      if (typeof av === 'number' && typeof bv === 'number') return (av - bv) * dir;
+      return String(av === undefined ? '' : av).localeCompare(String(bv === undefined ? '' : bv), 'ru', { numeric: true }) * dir;
+    });
+  }
+  return rows;
 }
 
 function renderBottomTable() {
-  const body = document.getElementById('bsBody');
-  const { sku, tlane, res, pds } = getFilteredDataset();
+  const ds = getFilteredDataset();
+  $('cntSku').textContent = ds.sku.length;
+  $('cntTlane').textContent = ds.tlane.length;
+  $('cntRes').textContent = ds.res.length;
+  $('cntPds').textContent = ds.pds.length;
+  $('cntAudit').textContent = MODEL.audit.length;
 
-  document.getElementById('cntSku').textContent = sku.length;
-  document.getElementById('cntTlane').textContent = tlane.length;
-  document.getElementById('cntRes').textContent = res.length;
-  document.getElementById('cntPds').textContent = pds.length;
-  document.getElementById('cntAudit').textContent = MODEL.audit.length;
+  const def = TABLE_DEFS[ACTIVE_TAB];
+  const rows = currentTableRows();
+  const shown = rows.slice(0, ROW_LIMIT);
+  const s = SORT_STATE[ACTIVE_TAB];
 
-  let html = '';
-  if (ACTIVE_TAB === 'sku') {
-    html = `<table><thead><tr><th>Продукт (item)</th><th>Локация (loc)</th><th>Складской ресурс</th><th>Мин. партия</th><th>Макс. партия</th></tr></thead><tbody>`;
-    sku.forEach(r => {
-      html += `<tr><td><b>${r.item}</b></td><td>${r.loc}</td><td>${r.res || '—'}</td><td>${r.minlotsize || '—'}</td><td>${r.maxlotsize || '—'}</td></tr>`;
+  const parts = ['<table><thead><tr>'];
+  def.cols.forEach((c) => {
+    const ind = s && s.k === c.k ? '<span class="sort-ind">' + (s.dir === 'asc' ? '▲' : '▼') + '</span>' : '';
+    parts.push('<th class="sortable" data-sort="' + esc(c.k) + '" title="Сортировать">' + esc(c.t) + ind + '</th>');
+  });
+  parts.push('</tr></thead><tbody>');
+
+  shown.forEach((r) => {
+    parts.push('<tr>');
+    def.cols.forEach((c) => {
+      const raw = r[c.k];
+      let cell;
+      if (c.level) cell = '<span class="tag-' + esc(raw) + '">' + esc(LEVEL_LABEL[raw] || raw) + '</span>';
+      else if (c.num) cell = raw === 0 ? '0' : fmtNum(raw);
+      else if (c.code) cell = '<code>' + esc(raw) + '</code>';
+      else if (c.bold) cell = '<b>' + esc(raw || '—') + '</b>';
+      else cell = esc(raw === '' || raw === undefined || raw === null ? '—' : raw);
+      if (c.k === 'item' && r.derived) cell += '<span class="tag-auto" title="Строка достроена автоматически из tlane/prodsource">авто</span>';
+      const cls = c.link && raw ? ' class="cell-link" data-goto="' + esc(raw) + '"' : (c.wrap ? ' style="white-space:normal;min-width:320px"' : '');
+      parts.push('<td' + cls + '>' + cell + '</td>');
     });
-    html += '</tbody></table>';
-  } else if (ACTIVE_TAB === 'tlane') {
-    html = `<table><thead><tr><th>Продукт</th><th>Откуда (locfr)</th><th>Куда (locto)</th><th>Транспорт (mot)</th><th>Срок доставки</th></tr></thead><tbody>`;
-    tlane.forEach(r => {
-      html += `<tr><td><b>${r.item}</b></td><td>${r.locfr}</td><td>${r.locto}</td><td><span class="tag-ok">${r.mot}</span></td><td>${r.leadtime} дн.</td></tr>`;
-    });
-    html += '</tbody></table>';
-  } else if (ACTIVE_TAB === 'res') {
-    html = `<table><thead><tr><th>Код ресурса</th><th>Локация</th><th>Наименование / Передел</th><th>Тип</th><th>Ед. изм.</th><th>Мощность/сут</th></tr></thead><tbody>`;
-    res.forEach(r => {
-      html += `<tr><td><b>${r.id}</b></td><td>${r.loc}</td><td>${r.name}</td><td>Ур. ${r.type}</td><td>${r.capuom}</td><td>${r.capacity}</td></tr>`;
-    });
-    html += '</tbody></table>';
-  } else if (ACTIVE_TAB === 'prodsource') {
-    html = `<table><thead><tr><th>Рецепт / PDS</th><th>Выпускаемый продукт</th><th>Завод</th><th>Версия</th><th>Приоритет</th><th>Норма</th></tr></thead><tbody>`;
-    pds.forEach(r => {
-      html += `<tr><td><code>${r.prodsource}</code></td><td><b>${r.item}</b></td><td>${r.loc}</td><td>${r.prodver}</td><td>${r.prio}</td><td>${r.outputqty}</td></tr>`;
-    });
-    html += '</tbody></table>';
-  } else if (ACTIVE_TAB === 'audit') {
-    html = `<table><thead><tr><th>Уровень</th><th>Категория</th><th>Объект</th><th>Суть проверки</th></tr></thead><tbody>`;
-    MODEL.audit.forEach(r => {
-      html += `<tr><td><span class="tag-${r.type}">${r.type === 'err' ? 'Критично' : 'Внимание'}</span></td><td>${r.cat}</td><td><b>${r.obj}</b></td><td>${r.msg}</td></tr>`;
-    });
-    html += '</tbody></table>';
+    parts.push('</tr>');
+  });
+  parts.push('</tbody></table>');
+
+  if (rows.length > shown.length) {
+    parts.push('<div class="row-more">Показано ' + shown.length + ' из ' + rows.length + ' строк · <button type="button" class="lnk" id="bMoreRows">показать ещё ' + ROW_STEP + '</button> · для полной выгрузки используйте экспорт в XLSX</div>');
   }
 
-  body.innerHTML = html || '<div style="padding:16px;text-align:center;color:var(--scp-text-3)">Данные отсутствуют под выбранными фильтрами</div>';
+  $('bsBody').innerHTML = rows.length
+    ? parts.join('')
+    : '<div style="padding:16px;text-align:center;color:var(--scp-text-3)">' + (TABLE_QUERY ? 'По запросу ничего не найдено' : 'Данные отсутствуют под выбранными фильтрами') + '</div>';
+  $('tblCount').textContent = rows.length ? shown.length + ' / ' + rows.length : '';
+
+  const more = $('bMoreRows');
+  if (more) more.onclick = () => { ROW_LIMIT += ROW_STEP; renderBottomTable(); };
 }
 
-function refreshUI() {
-  buildGraphTopology();
+$('bsBody').addEventListener('click', (e) => {
+  const th = e.target.closest('th.sortable');
+  if (th) {
+    const k = th.dataset.sort;
+    const cur = SORT_STATE[ACTIVE_TAB];
+    SORT_STATE[ACTIVE_TAB] = cur && cur.k === k ? (cur.dir === 'asc' ? { k, dir: 'desc' } : null) : { k, dir: 'asc' };
+    renderBottomTable();
+    return;
+  }
+  const td = e.target.closest('td.cell-link');
+  if (td) {
+    FOCUS_NODE_ID = td.dataset.goto;
+    switchMode('graph');
+    refreshUI();
+  }
+});
+
+/* ═══════════════ 12. ОБЩИЙ РЕНДЕР ═══════════════ */
+
+function refreshUI(relayout) {
+  buildGraphTopology(relayout);
   renderSidebarNodes();
   renderFilterPills();
   renderBottomTable();
-  if (VIEW_MODE === 'graph') {
-    drawGraph();
-  } else {
-    renderMatrixView();
-  }
+  if (VIEW_MODE === 'graph') drawGraph(); else renderMatrixView();
 
-  // Обновление плашки фокуса
-  const fWrap = document.getElementById('focusPillWrap');
+  const fWrap = $('focusPillWrap');
   if (FOCUS_NODE_ID) {
+    const info = getLineageInfo(FOCUS_NODE_ID);
     fWrap.style.display = 'block';
-    document.getElementById('focusPillText').textContent = `Фокус: ${FOCUS_NODE_ID}`;
+    $('focusPillText').textContent = 'Фокус: ' + FOCUS_NODE_ID + (info ? ' (↑' + info.upCount + ' / ↓' + info.dnCount + ')' : '');
   } else {
     fWrap.style.display = 'none';
   }
+  updateZoomLabel();
+  persistUI();
 }
 
-/* ═══════════════ 8. ХЕНДЛЕРЫ ФИЛЬТРОВ И СОБЫТИЙ ═══════════════ */
-function toggleFilterNode(id) {
-  const i = FILTERS.nodes.indexOf(id);
-  if (i < 0) FILTERS.nodes.push(id); else FILTERS.nodes.splice(i, 1);
+function renderLegend() {
+  $('graphLegend').innerHTML = CATEGORIES.concat([OTHER_CAT])
+    .map((c) => '<span title="' + esc(c.cat) + '">' + c.icon + ' ' + esc(c.cat) + '</span>')
+    .join('');
+}
+
+function switchMode(mode) {
+  VIEW_MODE = mode;
+  const g = mode === 'graph';
+  $('btnModeGraph').classList.toggle('on', g);
+  $('btnModeMatrix').classList.toggle('on', !g);
+  $('btnModeGraph').setAttribute('aria-pressed', String(g));
+  $('btnModeMatrix').setAttribute('aria-pressed', String(!g));
+  $('graphWrap').style.display = g ? 'block' : 'none';
+  $('matrixWrap').style.display = g ? 'none' : 'flex';
+  $('gToolbar').style.display = g ? 'flex' : 'none';
   refreshUI();
 }
-/* Кросс-фильтрация Продукты <-> Спецификации */
-// Множество спецификаций (PDS), выпускающих хотя бы один из переданных продуктов
-function getRelatedPdsSet(items) {
-  const set = new Set(items);
-  return new Set(MODEL.prodsource.filter(p => set.has(p.item)).map(p => p.prodsource));
-}
-// Множество продуктов, выпускаемых хотя бы одной из переданных спецификаций
-function getRelatedItemsSet(pds) {
-  const set = new Set(pds);
-  return new Set(MODEL.prodsource.filter(p => set.has(p.prodsource)).map(p => p.item));
-}
 
-function toggleFilterItem(item) {
-  const i = FILTERS.items.indexOf(item);
-  if (i < 0) FILTERS.items.push(item); else FILTERS.items.splice(i, 1);
-  // Кросс-фильтрация: оставляем только спецификации, выпускающие выбранные продукты
-  if (FILTERS.items.length) {
-    const rel = getRelatedPdsSet(FILTERS.items);
-    FILTERS.pds = FILTERS.pds.filter(p => rel.has(p));
+/* ═══════════════ 13. ЭКСПОРТ ═══════════════ */
+
+const SHEET_COLS = {
+  sku: ['item', 'loc', 'res', 'minlotsize', 'maxlotsize'],
+  res: ['id', 'loc', 'name', 'type', 'capuom', 'capacity'],
+  prodsource: ['prodsource', 'item', 'loc', 'prodver', 'prio', 'outputqty'],
+  tlane: ['item', 'locfr', 'locto', 'mot', 'leadtime']
+};
+
+function exportXlsx() {
+  try {
+    const ds = getFilteredDataset();
+    const wb = XLSX.utils.book_new();
+    const add = (name, rows, cols) => XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(rows.map((r) => {
+      const o = {};
+      cols.forEach((c) => { o[c] = r[c]; });
+      return o;
+    })), name);
+    add('sku', ds.sku, SHEET_COLS.sku);
+    add('res', ds.res, SHEET_COLS.res);
+    add('prodsource', ds.pds, SHEET_COLS.prodsource);
+    add('tlane', ds.tlane, SHEET_COLS.tlane);
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(MODEL.audit.map((a) => ({
+      Уровень: LEVEL_LABEL[a.type], Категория: a.cat, Объект: a.obj, Сообщение: a.msg
+    }))), 'audit');
+    XLSX.writeFile(wb, 'inplan-network-' + new Date().toISOString().slice(0, 10) + '.xlsx');
+    toast('Файл сохранён', 'ok', 'Экспорт XLSX');
+  } catch (err) {
+    toast(err.message || 'Не удалось сформировать книгу', 'err', 'Ошибка экспорта');
   }
-  refreshUI();
-}
-function toggleFilterPds(pds) {
-  const i = FILTERS.pds.indexOf(pds);
-  if (i < 0) FILTERS.pds.push(pds); else FILTERS.pds.splice(i, 1);
-  // Кросс-фильтрация: оставляем только продукты, выпускаемые выбранными спецификациями
-  if (FILTERS.pds.length) {
-    const rel = getRelatedItemsSet(FILTERS.pds);
-    FILTERS.items = FILTERS.items.filter(it => rel.has(it));
-  }
-  refreshUI();
 }
 
-// Дропдауны фильтров
-document.getElementById('bItemPop').onclick = (e) => {
-  e.stopPropagation();
-  document.getElementById('popPdsWrap').classList.remove('open');
-  document.getElementById('popItemsWrap').classList.toggle('open');
-};
-document.getElementById('bPdsPop').onclick = (e) => {
-  e.stopPropagation();
-  document.getElementById('popItemsWrap').classList.remove('open');
-  document.getElementById('popPdsWrap').classList.toggle('open');
-};
-document.addEventListener('click', () => {
-  document.getElementById('popItemsWrap').classList.remove('open');
-  document.getElementById('popPdsWrap').classList.remove('open');
-});
-document.querySelectorAll('.pop-menu').forEach(m => m.onclick = e => e.stopPropagation());
+function exportCsv() {
+  const def = TABLE_DEFS[ACTIVE_TAB];
+  const rows = currentTableRows();
+  if (!rows.length) { toast('В текущей вкладке нет строк', 'warn'); return; }
+  const q = (v) => '"' + String(v === undefined || v === null ? '' : v).replace(/"/g, '""') + '"';
+  const csv = [def.cols.map((c) => q(c.t)).join(';')]
+    .concat(rows.map((r) => def.cols.map((c) => q(c.level ? LEVEL_LABEL[r[c.k]] : r[c.k])).join(';')))
+    .join('\r\n');
+  // BOM — иначе Excel открывает кириллицу «кракозябрами»
+  downloadBlob(new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8' }), 'inplan-' + ACTIVE_TAB + '.csv');
+  toast(rows.length + ' строк выгружено', 'ok', 'Экспорт CSV');
+}
 
-// Полная вселенная продуктов — из всех источников (в старой версии tlane-продукты терялись)
-const getAllItemsUniverse = () => [...new Set([
-  ...MODEL.sku.map(s => s.item),
-  ...MODEL.tlane.map(t => t.item),
-  ...MODEL.prodsource.map(p => p.item)
-])].filter(Boolean);
-
-document.getElementById('btnItemAll').onclick = () => {
-  FILTERS.items = getAllItemsUniverse();
-  // Кросс-фильтрация: спецификации сужаются до выпускающих выбранные продукты
-  if (FILTERS.items.length) {
-    const rel = getRelatedPdsSet(FILTERS.items);
-    FILTERS.pds = FILTERS.pds.filter(p => rel.has(p));
-  }
-  refreshUI();
-};
-document.getElementById('btnItemClr').onclick = () => { FILTERS.items = []; refreshUI(); };
-document.getElementById('btnPdsAll').onclick = () => {
-  FILTERS.pds = [...new Set(MODEL.prodsource.map(p => p.prodsource))];
-  // Кросс-фильтрация: продукты сужаются до выпускаемых выбранными спецификациями
-  if (FILTERS.pds.length) {
-    const rel = getRelatedItemsSet(FILTERS.pds);
-    FILTERS.items = FILTERS.items.filter(it => rel.has(it));
-  }
-  refreshUI();
-};
-document.getElementById('btnPdsClr').onclick = () => { FILTERS.pds = []; refreshUI(); };
-document.getElementById('btnNodesClr').onclick = () => { FILTERS.nodes = []; refreshUI(); };
-
-document.getElementById('bResetAllFilters').onclick = () => {
-  FILTERS.items = [];
-  FILTERS.pds = [];
-  FILTERS.nodes = [];
-  FOCUS_NODE_ID = null;
-  refreshUI();
-};
-document.getElementById('bClearFocus').onclick = () => {
-  FOCUS_NODE_ID = null;
-  refreshUI();
-};
-
-document.getElementById('qItem').oninput = renderFilterPills;
-document.getElementById('qPds').oninput = renderFilterPills;
-document.getElementById('sbSearchInput').oninput = renderSidebarNodes;
-
-// Переключение режимов Граф / Матрица
-document.getElementById('btnModeGraph').onclick = () => {
-  VIEW_MODE = 'graph';
-  document.getElementById('btnModeGraph').classList.add('on');
-  document.getElementById('btnModeMatrix').classList.remove('on');
-  document.getElementById('graphWrap').style.display = 'block';
-  document.getElementById('matrixWrap').style.display = 'none';
-  document.getElementById('gToolbar').style.display = 'flex';
-  refreshUI();
-};
-document.getElementById('btnModeMatrix').onclick = () => {
-  VIEW_MODE = 'matrix';
-  document.getElementById('btnModeMatrix').classList.add('on');
-  document.getElementById('btnModeGraph').classList.remove('on');
-  document.getElementById('graphWrap').style.display = 'none';
-  document.getElementById('matrixWrap').style.display = 'block';
-  document.getElementById('gToolbar').style.display = 'none';
-  refreshUI();
-};
-
-// Загрузка файлов
-document.getElementById('bUpload').onclick = () => document.getElementById('fInput').click();
-document.getElementById('fInput').onchange = (e) => {
-  const files = Array.from(e.target.files);
-  if (!files.length) return;
-
-  // Первый распарсенный файл затирает демо-набор SEED_DATA
-  parseWorkbookSheets._wipeNext = true;
-
-  files.forEach(file => {
-    const reader = new FileReader();
-    reader.onload = (evt) => {
-      const wb = XLSX.read(evt.target.result, { type: 'array' });
-      parseWorkbookSheets(wb);
-    };
-    reader.readAsArrayBuffer(file);
+/* PNG экспортирует схему целиком, а не только видимую область экрана */
+function exportPng() {
+  const b = graphBounds();
+  if (!b) { toast('Схема пуста', 'warn'); return; }
+  const pad = 40;
+  const scale = 2;
+  const off = document.createElement('canvas');
+  off.width = Math.min(12000, Math.round((b.w + pad * 2) * scale));
+  off.height = Math.min(12000, Math.round((b.h + pad * 2) * scale));
+  const ctx = off.getContext('2d');
+  const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+  ctx.fillStyle = isDark ? '#1a1a22' : '#ffffff';
+  ctx.fillRect(0, 0, off.width, off.height);
+  ctx.scale(scale, scale);
+  renderScene(ctx, {
+    zoom: 1, panX: pad - b.x1, panY: pad - b.y1,
+    isDark, focusId: FOCUS_NODE_ID, warnMode: WARN_HIGHLIGHT, hoverId: null
   });
-  e.target.value = '';
+  off.toBlob((blob) => {
+    downloadBlob(blob, 'inplan-graph-' + new Date().toISOString().slice(0, 10) + '.png');
+    toast('Схема сохранена в PNG', 'ok', 'Экспорт');
+  });
+  scheduleDraw(); // восстановить _chip для экранных тултипов
+}
+
+function downloadBlob(blob, name) {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = name;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+/* Шаблон закрывает главный пробел онбординга: раньше требуемая
+   структура книги нигде не была описана. */
+function downloadTemplate() {
+  const wb = XLSX.utils.book_new();
+  const mk = (name, header, sample) => XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([header].concat(sample)), name);
+  mk('sku', ['item', 'loc', 'res', 'minlotsize', 'maxlotsize'], SEED_DATA.sku.map((r) => [r.item, r.loc, r.res, r.minlotsize, r.maxlotsize]));
+  mk('res', ['id', 'loc', 'name', 'type', 'capuom', 'capacity'], SEED_DATA.res.map((r) => [r.id, r.loc, r.name, r.type, r.capuom, r.capacity]));
+  mk('prodsource', ['prodsource', 'item', 'loc', 'prodver', 'prio', 'outputqty'], SEED_DATA.prodsource.map((r) => [r.prodsource, r.item, r.loc, r.prodver, r.prio, r.outputqty]));
+  mk('tlane', ['item', 'locfr', 'locto', 'mot', 'leadtime'], SEED_DATA.tlane.map((r) => [r.item, r.locfr, r.locto, r.mot, r.leadtime]));
+  mk('README', ['Лист', 'Назначение', 'Обязательные колонки'], [
+    ['sku', 'Справочник «продукт × локация»', 'item, loc'],
+    ['res', 'Ресурсы и мощности', 'id (loc — желательно)'],
+    ['prodsource', 'Рецептуры / источники производства', 'item, loc'],
+    ['tlane', 'Транспортные плечи', 'locfr, locto'],
+    ['', 'Русские заголовки тоже распознаются', 'напр. «Локация: системный код»']
+  ]);
+  XLSX.writeFile(wb, 'inplan-template.xlsx');
+  toast('Заполните листы и загрузите книгу обратно', 'ok', 'Шаблон скачан');
+}
+
+/* ═══════════════ 14. СОХРАНЕНИЕ СЕССИИ ═══════════════ */
+
+const LS_UI = 'inplan_ui_v2';
+const LS_MODEL = 'inplan_model_v2';
+
+function persistUI() {
+  try {
+    localStorage.setItem(LS_UI, JSON.stringify({
+      theme: document.documentElement.getAttribute('data-theme'),
+      mode: VIEW_MODE,
+      tab: ACTIVE_TAB,
+      sheetH: $('bottomSheet').style.height || '',
+      sheetCollapsed: $('bottomSheet').classList.contains('collapsed'),
+      sbMin: $('sidebar').classList.contains('min')
+    }));
+  } catch (e) { void e; }
+}
+
+/* Данные переживают перезагрузку страницы — раньше случайный F5
+   уничтожал результат загрузки нескольких книг. */
+function persistModel() {
+  try {
+    const payload = JSON.stringify({ sku: MODEL.sku, res: MODEL.res, prodsource: MODEL.prodsource, tlane: MODEL.tlane });
+    if (payload.length > 4.5e6) { localStorage.removeItem(LS_MODEL); return; }
+    localStorage.setItem(LS_MODEL, payload);
+  } catch (e) {
+    try { localStorage.removeItem(LS_MODEL); } catch (e2) { void e2; }
+  }
+}
+
+function restoreSession() {
+  let ui = {};
+  try { ui = JSON.parse(localStorage.getItem(LS_UI) || '{}'); } catch (e) { void e; }
+  document.documentElement.setAttribute('data-theme', ui.theme === 'dark' ? 'dark' : 'light');
+
+  let restored = false;
+  try {
+    const raw = localStorage.getItem(LS_MODEL);
+    if (raw) {
+      const m = JSON.parse(raw);
+      if (m && (m.sku || m.tlane)) {
+        MODEL.sku = m.sku || []; MODEL.res = m.res || [];
+        MODEL.prodsource = m.prodsource || []; MODEL.tlane = m.tlane || [];
+        restored = MODEL.sku.length > 0 || MODEL.tlane.length > 0;
+      }
+    }
+  } catch (e) { void e; }
+  if (!restored) loadSeed();
+
+  if (ui.tab && TABLE_DEFS[ui.tab]) {
+    ACTIVE_TAB = ui.tab;
+    document.querySelectorAll('.bs-tab').forEach((b) => b.classList.toggle('on', b.dataset.tab === ACTIVE_TAB));
+  }
+  if (ui.sheetH) $('bottomSheet').style.height = ui.sheetH;
+  if (ui.sheetCollapsed) { $('bottomSheet').classList.add('collapsed'); $('bCollapseSheet').textContent = '▴'; }
+  if (ui.sbMin) { $('sidebar').classList.add('min'); $('bFloatingRestoreSb').style.display = 'block'; }
+  return { restored, mode: ui.mode };
+}
+
+/* ═══════════════ 15. ОБРАБОТЧИКИ ИНТЕРФЕЙСА ═══════════════ */
+
+// Выпадающие меню
+function closeAllPopups() {
+  document.querySelectorAll('.pop-wrap.open').forEach((w) => {
+    w.classList.remove('open');
+    const btn = w.querySelector('button[aria-haspopup]');
+    if (btn) btn.setAttribute('aria-expanded', 'false');
+  });
+}
+function togglePopup(wrapId, btnId) {
+  const wrap = $(wrapId);
+  const willOpen = !wrap.classList.contains('open');
+  closeAllPopups();
+  wrap.classList.toggle('open', willOpen);
+  $(btnId).setAttribute('aria-expanded', String(willOpen));
+}
+$('bItemPop').onclick = (e) => { e.stopPropagation(); togglePopup('popItemsWrap', 'bItemPop'); };
+$('bPdsPop').onclick = (e) => { e.stopPropagation(); togglePopup('popPdsWrap', 'bPdsPop'); };
+$('bExport').onclick = (e) => { e.stopPropagation(); togglePopup('popExportWrap', 'bExport'); };
+document.addEventListener('click', closeAllPopups);
+document.querySelectorAll('.pop-menu').forEach((m) => m.addEventListener('click', (e) => e.stopPropagation()));
+$('popExportWrap').querySelector('.menu-pop').addEventListener('click', () => closeAllPopups());
+
+// Кнопки фильтров
+$('btnItemAll').onclick = () => {
+  getAllItemsUniverse().forEach((i) => FILTERS.items.add(i));
+  const rel = getRelatedPdsSet(FILTERS.items);
+  [...FILTERS.pds].forEach((p) => { if (!rel.has(p)) FILTERS.pds.delete(p); });
+  refreshUI();
+};
+$('btnItemClr').onclick = () => { FILTERS.items.clear(); refreshUI(); };
+$('btnPdsAll').onclick = () => {
+  MODEL.prodsource.forEach((p) => p.prodsource && FILTERS.pds.add(p.prodsource));
+  const rel = getRelatedItemsSet(FILTERS.pds);
+  [...FILTERS.items].forEach((it) => { if (!rel.has(it)) FILTERS.items.delete(it); });
+  refreshUI();
+};
+$('btnPdsClr').onclick = () => { FILTERS.pds.clear(); refreshUI(); };
+$('btnNodesClr').onclick = () => { FILTERS.nodes.clear(); refreshUI(); };
+$('bResetAllFilters').onclick = () => { resetFilters(); refreshUI(); };
+$('bClearFocus').onclick = () => { FOCUS_NODE_ID = null; refreshUI(); };
+
+$('qItem').oninput = debounce(renderFilterPills, 120);
+$('qPds').oninput = debounce(renderFilterPills, 120);
+$('sbSearchInput').oninput = debounce(renderSidebarNodes, 120);
+$('tblSearch').oninput = debounce((e) => { TABLE_QUERY = e.target.value.trim(); ROW_LIMIT = ROW_STEP; renderBottomTable(); }, 160);
+
+// Режимы
+$('btnModeGraph').onclick = () => switchMode('graph');
+$('btnModeMatrix').onclick = () => switchMode('matrix');
+
+// Загрузка
+$('bUpload').onclick = () => $('fInput').click();
+$('geUpload').onclick = () => $('fInput').click();
+$('geTemplate').onclick = downloadTemplate;
+$('fInput').onchange = (e) => { importFiles(e.target.files); e.target.value = ''; };
+
+// Перетаскивание файлов на окно
+['dragover', 'drop'].forEach((ev) => document.addEventListener(ev, (e) => {
+  e.preventDefault();
+  if (ev === 'drop' && e.dataTransfer && e.dataTransfer.files.length) importFiles(e.dataTransfer.files);
+}));
+
+// Экспорт
+$('miExpXlsx').onclick = exportXlsx;
+$('miExpCsv').onclick = exportCsv;
+$('miExpPng').onclick = exportPng;
+$('miTemplate').onclick = downloadTemplate;
+$('miDemo').onclick = () => {
+  loadSeed();
+  resetFilters();
+  resetGraphView();
+  runModelAudit();
+  persistModel();
+  refreshUI(true);
+  zoomToFit();
+  toast('Загружен учебный пример сети', 'ok', 'Демо-данные');
 };
 
-// Переключатели нижних табов
-document.querySelectorAll('.bs-tab').forEach(btn => {
+// Вкладки
+document.querySelectorAll('.bs-tab').forEach((btn) => {
   btn.onclick = () => {
-    document.querySelectorAll('.bs-tab').forEach(b => b.classList.remove('on'));
+    document.querySelectorAll('.bs-tab').forEach((b) => b.classList.remove('on'));
     btn.classList.add('on');
     ACTIVE_TAB = btn.dataset.tab;
+    ROW_LIMIT = ROW_STEP;
+    $('bottomSheet').classList.remove('collapsed');
     renderBottomTable();
+    persistUI();
   };
 });
 
+$('bCollapseSheet').onclick = () => {
+  const collapsed = $('bottomSheet').classList.toggle('collapsed');
+  $('bCollapseSheet').textContent = collapsed ? '▴' : '▾';
+  persistUI();
+  setTimeout(scheduleDraw, 60);
+};
+
 // Тема
-document.getElementById('bTheme').onclick = () => {
-  const cur = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
-  document.documentElement.setAttribute('data-theme', cur);
-  localStorage.setItem('inplan_theme', cur);
-  drawGraph();
+$('bTheme').onclick = () => {
+  const next = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+  document.documentElement.setAttribute('data-theme', next);
+  persistUI();
+  scheduleDraw();
 };
 
-// Логика сворачивания / раскрытия меню узлов сети
+// Панель узлов
 const toggleSidebar = () => {
-  const sb = document.getElementById('sidebar');
+  const sb = $('sidebar');
   const isMin = sb.classList.toggle('min');
-  document.getElementById('bFloatingRestoreSb').style.display = isMin ? 'block' : 'none';
-  setTimeout(drawGraph, 220);
+  $('bFloatingRestoreSb').style.display = isMin ? 'block' : 'none';
+  persistUI();
+  setTimeout(scheduleDraw, 220);
 };
+$('bToggleSb').onclick = toggleSidebar;
+$('bHdrToggleSb').onclick = toggleSidebar;
+$('bFloatingRestoreSb').onclick = toggleSidebar;
 
-document.getElementById('bToggleSb').onclick = toggleSidebar;
-document.getElementById('bHdrToggleSb').onclick = toggleSidebar;
-document.getElementById('bFloatingRestoreSb').onclick = toggleSidebar;
-
-// Переключатель "Предупреждения"
-document.getElementById('tglWarns').onclick = () => {
-  SHOW_WARNS_ONLY = !SHOW_WARNS_ONLY;
-  document.getElementById('tglWarns').classList.toggle('on', SHOW_WARNS_ONLY);
-  if (SHOW_WARNS_ONLY) {
-    // Автоматически переключаем нижнюю вкладку на Предупреждения
-    document.querySelectorAll('.bs-tab').forEach(b => b.classList.remove('on'));
-    const auditTabBtn = document.querySelector('.bs-tab[data-tab="audit"]');
-    if (auditTabBtn) auditTabBtn.classList.add('on');
+// Подсветка проблемных узлов
+$('tglWarns').onclick = () => {
+  if (!MODEL.audit.length && !WARN_HIGHLIGHT) { toast('Модель без замечаний — подсвечивать нечего', 'ok'); return; }
+  WARN_HIGHLIGHT = !WARN_HIGHLIGHT;
+  $('tglWarns').setAttribute('aria-checked', String(WARN_HIGHLIGHT));
+  $('tglWarns').classList.toggle('on', WARN_HIGHLIGHT);
+  if (WARN_HIGHLIGHT) {
+    document.querySelectorAll('.bs-tab').forEach((b) => b.classList.toggle('on', b.dataset.tab === 'audit'));
     ACTIVE_TAB = 'audit';
+    ROW_LIMIT = ROW_STEP;
+    $('bottomSheet').classList.remove('collapsed');
   }
   refreshUI();
 };
 
-// Drag & Zoom графа + Выбор объекта и сброс кликом в пустоту
-const canvas = document.getElementById('graphCanvas');
-let clickStartTime = 0;
-let dragOccurred = false;
-
-canvas.onmousedown = (e) => {
-  clickStartTime = Date.now();
-  dragOccurred = false;
-  const rect = canvas.getBoundingClientRect();
-  const mx = (e.clientX - rect.left - GRAPH.panX) / GRAPH.zoom;
-  const my = (e.clientY - rect.top - GRAPH.panY) / GRAPH.zoom;
-
-  const hit = GRAPH.nodes.slice().reverse().find(n => mx >= n.x && mx <= n.x + n.w && my >= n.y && my <= n.y + n.h);
-  if (hit) {
-    GRAPH.dragNode = hit;
-  } else {
-    GRAPH.isDragging = true;
-    GRAPH.startX = e.clientX - GRAPH.panX;
-    GRAPH.startY = e.clientY - GRAPH.panY;
-  }
+// Управление схемой
+const zoomBy = (f) => {
+  const wrap = $('graphWrap');
+  const cx = wrap.clientWidth / 2;
+  const cy = wrap.clientHeight / 2;
+  const before = { x: (cx - GRAPH.panX) / GRAPH.zoom, y: (cy - GRAPH.panY) / GRAPH.zoom };
+  GRAPH.zoom = Math.max(0.15, Math.min(3, GRAPH.zoom * f));
+  GRAPH.panX = cx - before.x * GRAPH.zoom;
+  GRAPH.panY = cy - before.y * GRAPH.zoom;
+  updateZoomLabel();
+  scheduleDraw();
 };
+$('bZoomIn').onclick = () => zoomBy(1.2);
+$('bZoomOut').onclick = () => zoomBy(1 / 1.2);
+$('bZoomFit').onclick = () => zoomToFit();
+$('bRelayout').onclick = () => { layoutGraph(true); zoomToFit(); toast('Раскладка пересобрана, закрепления сняты', 'info'); };
 
-window.onmousemove = (e) => {
-  if (GRAPH.dragNode) {
-    dragOccurred = true;
-    GRAPH.dragNode.x += e.movementX / GRAPH.zoom;
-    GRAPH.dragNode.y += e.movementY / GRAPH.zoom;
-    drawGraph();
-  } else if (GRAPH.isDragging) {
-    dragOccurred = true;
-    GRAPH.panX = e.clientX - GRAPH.startX;
-    GRAPH.panY = e.clientY - GRAPH.startY;
-    drawGraph();
-  }
-};
-
-window.onmouseup = (e) => {
-  const rect = canvas.getBoundingClientRect();
-  const mx = (e.clientX - rect.left - GRAPH.panX) / GRAPH.zoom;
-  const my = (e.clientY - rect.top - GRAPH.panY) / GRAPH.zoom;
-
-  // Если был быстрый клик без перетаскивания
-  if (Date.now() - clickStartTime < 220 && !dragOccurred) {
-    const hit = GRAPH.nodes.slice().reverse().find(n => mx >= n.x && mx <= n.x + n.w && my >= n.y && my <= n.y + n.h);
-    if (hit) {
-      FOCUS_NODE_ID = (FOCUS_NODE_ID === hit.id) ? null : hit.id;
-    } else {
-      // Клик в пустое место холста — сбрасываем фокус
-      FOCUS_NODE_ID = null;
-    }
-    refreshUI();
-  }
-
-  GRAPH.isDragging = false;
-  GRAPH.dragNode = null;
-};
-
-canvas.onwheel = (e) => {
-  e.preventDefault();
-  const factor = e.deltaY < 0 ? 1.08 : 0.92;
-  GRAPH.zoom = Math.max(0.25, Math.min(2.5, GRAPH.zoom * factor));
-  drawGraph();
-};
-
-// Ресайзер нижней панели
-const resizer = document.getElementById('bsResizer');
+// Ресайзер нижней панели (без выделения текста при перетаскивании)
+const resizer = $('bsResizer');
 let isResizing = false;
-resizer.onmousedown = () => isResizing = true;
-window.addEventListener('mousemove', (e) => {
-  if (isResizing) {
-    const h = window.innerHeight - e.clientY;
-    if (h > 90 && h < window.innerHeight * 0.7) {
-      document.getElementById('bottomSheet').style.height = h + 'px';
-      drawGraph();
-    }
+resizer.addEventListener('pointerdown', (e) => {
+  e.preventDefault();
+  isResizing = true;
+  document.body.classList.add('dragging');
+  resizer.setPointerCapture(e.pointerId);
+});
+resizer.addEventListener('pointermove', (e) => {
+  if (!isResizing) return;
+  const h = window.innerHeight - e.clientY;
+  const max = window.innerHeight * 0.75;
+  const clamped = Math.max(110, Math.min(max, h));
+  $('bottomSheet').style.height = clamped + 'px';
+  scheduleDraw();
+});
+const stopResize = () => {
+  if (!isResizing) return;
+  isResizing = false;
+  document.body.classList.remove('dragging');
+  persistUI();
+};
+resizer.addEventListener('pointerup', stopResize);
+resizer.addEventListener('pointercancel', stopResize);
+resizer.addEventListener('keydown', (e) => {
+  const cur = $('bottomSheet').offsetHeight;
+  if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
+    e.preventDefault();
+    $('bottomSheet').style.height = Math.max(110, Math.min(window.innerHeight * 0.75, cur + (e.key === 'ArrowUp' ? 30 : -30))) + 'px';
+    scheduleDraw();
+    persistUI();
   }
 });
-window.addEventListener('mouseup', () => isResizing = false);
-window.onresize = drawGraph;
 
-// Инициализация
-const savedTheme = localStorage.getItem('inplan_theme') || 'light';
-document.documentElement.setAttribute('data-theme', savedTheme);
+// Реакция на изменение размеров области (надёжнее window.resize)
+if (typeof ResizeObserver !== 'undefined') {
+  new ResizeObserver(debounce(() => scheduleDraw(), 60)).observe($('graphWrap'));
+} else {
+  window.addEventListener('resize', debounce(() => scheduleDraw(), 60));
+}
 
-MODEL.sku = [...SEED_DATA.sku];
-MODEL.res = [...SEED_DATA.res];
-MODEL.prodsource = [...SEED_DATA.prodsource];
-MODEL.tlane = [...SEED_DATA.tlane];
-runModelAudit();
-refreshUI();
+// Клавиатура
+document.addEventListener('keydown', (e) => {
+  const typing = /^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName);
+  if (e.key === 'Escape') {
+    if (document.querySelector('.pop-wrap.open')) { closeAllPopups(); return; }
+    if (typing) { e.target.blur(); return; }
+    if (FOCUS_NODE_ID) { FOCUS_NODE_ID = null; refreshUI(); }
+    return;
+  }
+  if (typing) return;
+  if (e.key === '/') { e.preventDefault(); $('sbSearchInput').focus(); }
+  else if (e.key === 'f' || e.key === 'F' || e.key === 'а' || e.key === 'А') zoomToFit();
+  else if (e.key === 'r' || e.key === 'R' || e.key === 'к' || e.key === 'К') { layoutGraph(true); zoomToFit(); }
+  else if (e.key === 'g' || e.key === 'G' || e.key === 'п' || e.key === 'П') switchMode('graph');
+  else if (e.key === 'm' || e.key === 'M' || e.key === 'ь' || e.key === 'Ь') switchMode('matrix');
+  else if (e.key === '+' || e.key === '=') zoomBy(1.2);
+  else if (e.key === '-' || e.key === '_') zoomBy(1 / 1.2);
+});
+
+/* ═══════════════ 16. ЗАПУСК ═══════════════ */
+
+(function init() {
+  if (typeof XLSX === 'undefined') {
+    toast('Библиотека SheetJS не загрузилась (нет доступа к CDN). Импорт и экспорт XLSX недоступны, остальной интерфейс работает.', 'err', 'Офлайн-режим', 12000);
+  }
+  renderLegend();
+  const { restored, mode } = restoreSession();
+  runModelAudit();
+  if (mode === 'matrix') switchMode('matrix'); else refreshUI(true);
+  zoomToFit();
+  if (restored) toast('Восстановлены данные предыдущей сессии', 'info', 'Сессия', 5000);
+})();
+
 </script>
 </body>
 </html>
