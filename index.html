@@ -2589,6 +2589,10 @@ function downloadTemplate() {
 
 const LS_UI = 'inplan_ui_v2';
 const LS_MODEL = 'inplan_model_v2';
+/* Срок жизни загруженных данных: 24 часа с момента последнего сохранения.
+   localStorage сам по себе бессрочен и переживает закрытие браузера,
+   поэтому срок годности проверяем вручную по метке времени. */
+const MODEL_TTL_MS = 24 * 60 * 60 * 1000;
 
 function persistUI() {
   try {
@@ -2607,7 +2611,7 @@ function persistUI() {
    уничтожал результат загрузки нескольких книг. */
 function persistModel() {
   try {
-    const payload = JSON.stringify({ sku: MODEL.sku, res: MODEL.res, prodsource: MODEL.prodsource, tlane: MODEL.tlane });
+    const payload = JSON.stringify({ savedAt: Date.now(), sku: MODEL.sku, res: MODEL.res, prodsource: MODEL.prodsource, tlane: MODEL.tlane });
     if (payload.length > 4.5e6) { localStorage.removeItem(LS_MODEL); return; }
     localStorage.setItem(LS_MODEL, payload);
   } catch (e) {
@@ -2625,7 +2629,11 @@ function restoreSession() {
     const raw = localStorage.getItem(LS_MODEL);
     if (raw) {
       const m = JSON.parse(raw);
-      if (m && (m.sku || m.tlane)) {
+      const fresh = m && typeof m.savedAt === 'number' && (Date.now() - m.savedAt) < MODEL_TTL_MS;
+      if (!fresh) {
+        // Нет метки времени (старый формат) или данным больше суток — чистим.
+        localStorage.removeItem(LS_MODEL);
+      } else if (m && (m.sku || m.tlane)) {
         MODEL.sku = m.sku || []; MODEL.res = m.res || [];
         MODEL.prodsource = m.prodsource || []; MODEL.tlane = m.tlane || [];
         restored = MODEL.sku.length > 0 || MODEL.tlane.length > 0;
