@@ -720,6 +720,9 @@ body.dragging { cursor: row-resize; }
   color: var(--scp-text-3);
 }
 
+.menu-pop .mi-sub { display: block; font-size: 10.5px; color: var(--scp-text-3); font-weight: 400; }
+.menu-pop button:hover .mi-sub { color: var(--scp-accent-sub); }
+
 /* ── Индикатор источника данных (локально / сервер) ── */
 .src-btn {
   display: flex;
@@ -747,8 +750,15 @@ body.dragging { cursor: row-resize; }
 .src-btn.busy .src-dot { background: #d68910; }
 .src-btn.err .src-dot { background: #c0392b; }
 @media (max-width: 980px) { .src-btn .src-lbl { display: none; } .src-btn { padding: 0 8px; } }
-.menu-pop .mi-sub { display: block; font-size: 10.5px; color: var(--scp-text-3); font-weight: 400; }
-.menu-pop button:hover .mi-sub { color: var(--scp-accent-sub); }
+
+/* Пункты меню синхронизации длиннее экспортных: заголовок в одну строку,
+   пояснение — отдельной строкой под ним, а не колонкой справа. */
+#popSyncWrap .menu-pop { min-width: 292px; }
+#popSyncWrap .menu-pop button {
+  display: block;
+  line-height: 17px;
+}
+#popSyncWrap .menu-pop .mi-sub { margin-top: 1px; }
 
 /* ── Нижняя панель: инструменты ── */
 .bs-tools {
@@ -960,8 +970,8 @@ td.cell-link:hover { color: var(--scp-accent); }
         <span class="src-dot" aria-hidden="true"></span><span class="src-lbl" id="syncLbl">Локально</span> ▾
       </button>
       <div class="menu-pop" role="menu" aria-label="Синхронизация">
-        <button type="button" id="miSyncPush" role="menuitem">⬆ Отправить модель на сервер<span class="mi-sub">Создаст новую ревизию, ничего не перезапишет</span></button>
-        <button type="button" id="miSyncPull" role="menuitem">⬇ Забрать последнюю с сервера<span class="mi-sub">Заменит текущие данные в браузере</span></button>
+        <button type="button" id="miSyncPush" role="menuitem">📤 Отправить модель на сервер<span class="mi-sub">Создаст новую ревизию, ничего не перезапишет</span></button>
+        <button type="button" id="miSyncPull" role="menuitem">📥 Забрать последнюю с сервера<span class="mi-sub">Заменит текущие данные в браузере</span></button>
         <hr>
         <button type="button" id="miSyncAuto" role="menuitem">🔁 Автоотправка после импорта<span class="mi-sub" id="syncAutoSub">Выключена</span></button>
         <button type="button" id="miSyncCheck" role="menuitem">📡 Проверить соединение<span class="mi-sub" id="syncCheckSub">Сервер не найден — работаем локально</span></button>
