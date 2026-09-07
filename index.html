@@ -767,6 +767,7 @@ body.dragging { cursor: row-resize; }
   display: none; z-index: 1500; align-items: flex-start; justify-content: center;
   padding: 8vh 12px 12px;
 }
+.dlg-overlay.show { display: flex; }
 .dlg-card {
   background: var(--scp-surface); color: var(--scp-text);
   border: 1px solid var(--scp-line-2); border-radius: var(--r-m);
@@ -1032,14 +1033,14 @@ td.cell-link:hover { color: var(--scp-accent); }
       </div>
     </div>
     <div class="pop-wrap" id="popChWrap">
-      <button class="src-btn" id="bCh" aria-haspopup="true" aria-expanded="false" title="Прямое подключение к ClickHouse (без сервера)">
-        <span class="src-dot" aria-hidden="true"></span><span class="src-lbl" id="chLbl">⚡ ClickHouse</span>
+      <button class="src-btn" id="bCh" aria-haspopup="true" aria-expanded="false" title="Данные из ClickHouse: подключиться и выбрать версию (проект)">
+        <span class="src-dot" aria-hidden="true"></span><span class="src-lbl" id="chLbl">⚡ ClickHouse</span> ▾
       </button>
       <div class="menu-pop" role="menu" aria-label="ClickHouse">
         <div class="mi-hint" id="chMenuHint">Не подключено</div>
         <button type="button" id="miChRefresh" role="menuitem">🔄 Обновить данные из CH<span class="mi-sub">Перечитать таблицы выбранного проекта</span></button>
         <button type="button" id="miChMap" role="menuitem">🧭 Проверить соответствие колонок<span class="mi-sub">Какие поля дашборда распознались в таблицах</span></button>
-        <button type="button" id="miChSetup" role="menuitem">✎ Настроить подключение<span class="mi-sub">Хост, логин, проект и таблицы</span></button>
+        <button type="button" id="miChSetup" role="menuitem">⚙ Проект · версия · таблицы<span class="mi-sub">Сменить версию данных (проект), таблицы, доступ</span></button>
         <hr>
         <button type="button" id="miChOff" role="menuitem">⏻ Отключить ClickHouse<span class="mi-sub">Остаться на локальных данных</span></button>
       </div>
@@ -1145,7 +1146,7 @@ td.cell-link:hover { color: var(--scp-accent); }
 <div class="dlg-overlay" id="chDlg" role="dialog" aria-modal="true" aria-label="Прямое подключение к ClickHouse">
   <div class="dlg-card">
     <h3>⚡ Прямое подключение к ClickHouse</h3>
-    <div class="dlg-sub">Дашборд ходит в HTTP-интерфейс ClickHouse прямо из браузера — сервер синхронизации не нужен. Логин и данные остаются в этом браузере.</div>
+    <div class="dlg-sub">Версия данных — это проект (база вида Data_public_*). После подключения выберите нужный проект и загрузите данные. Логин и данные остаются в этом браузере.</div>
     <div class="dlg-grid">
       <label for="chHost">Хост</label>
       <input id="chHost" type="text" placeholder="ch.company.ru" autocomplete="off" spellcheck="false">
@@ -1169,7 +1170,7 @@ td.cell-link:hover { color: var(--scp-accent); }
     <div id="chSetupMore" hidden>
       <hr class="dlg-hr">
       <div class="tbl-grid">
-        <label for="chDbSel">Проект</label>
+        <label for="chDbSel">Проект · версия</label>
         <select id="chDbSel"></select>
         <label for="chTblSku">Таблица sku · опц.</label>
         <select id="chTblSku"></select>
@@ -3175,8 +3176,13 @@ function openChDialog() {
   $('chConnStatus').classList.toggle('ok', CH.online);
   $('chSetupMore').hidden = !CH.online;
   $('chDlg').classList.add('show');
+  $('bCh').setAttribute('aria-expanded', 'true');
+  $('chHost').focus();
 }
-const closeChDialog = () => $('chDlg').classList.remove('show');
+const closeChDialog = () => {
+  $('chDlg').classList.remove('show');
+  $('bCh').setAttribute('aria-expanded', 'false');
+};
 
 function setChStatus(kind, text) {
   const el = $('chConnStatus');
@@ -3585,6 +3591,7 @@ if (typeof ResizeObserver !== 'undefined') {
 document.addEventListener('keydown', (e) => {
   const typing = /^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName);
   if (e.key === 'Escape') {
+    if ($('chDlg').classList.contains('show')) { closeChDialog(); return; }
     if (document.querySelector('.pop-wrap.open')) { closeAllPopups(); return; }
     if (typing) { e.target.blur(); return; }
     if (FOCUS_NODE_ID) { FOCUS_NODE_ID = null; refreshUI(); }
