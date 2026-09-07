@@ -760,6 +760,60 @@ body.dragging { cursor: row-resize; }
 }
 #popSyncWrap .menu-pop .mi-sub { margin-top: 1px; }
 
+/* ── Прямое подключение к ClickHouse ── */
+.src-btn .src-lbl { max-width: 170px; overflow: hidden; text-overflow: ellipsis; }
+.dlg-overlay {
+  position: fixed; inset: 0; background: rgba(20,20,30,.45);
+  display: none; z-index: 1500; align-items: flex-start; justify-content: center;
+  padding: 8vh 12px 12px;
+}
+.dlg-card {
+  background: var(--scp-surface); color: var(--scp-text);
+  border: 1px solid var(--scp-line-2); border-radius: var(--r-m);
+  box-shadow: 0 14px 44px rgba(0,0,0,.28);
+  width: 560px; max-width: 96vw; max-height: 82vh; overflow: auto; padding: 16px 18px;
+}
+.dlg-card h3 { margin: 0; font-size: 15px; }
+.dlg-sub { color: var(--scp-text-3); font-size: 11.5px; margin: 4px 0 12px; line-height: 16px; }
+.dlg-grid { display: grid; grid-template-columns: 84px 1fr; gap: 8px; align-items: center; }
+.dlg-grid label, .tbl-grid label { font-size: 11.5px; color: var(--scp-text-2); font-weight: 600; }
+.dlg-grid input, .tbl-grid select {
+  width: 100%; background: var(--scp-surface-2); color: var(--scp-text);
+  border: 1px solid var(--scp-line-2); border-radius: var(--r-s);
+  padding: 6px 8px; font: 400 12.5px 'Open Sans', sans-serif;
+}
+.dlg-grid input:focus, .tbl-grid select:focus { outline: none; border-color: var(--scp-accent); }
+.dlg-row { display: flex; gap: 8px; align-items: center; margin-top: 12px; flex-wrap: wrap; }
+.dlg-hr { border: 0; border-top: 1px solid var(--scp-line); margin: 14px 0; }
+.dlg-status { font-size: 11.5px; }
+.dlg-status.ok { color: var(--scp-ok); }
+.dlg-status.err { color: var(--scp-err); }
+.dlg-status.busy { color: var(--scp-warn); }
+
+.btn-main {
+  display: inline-flex; align-items: center; gap: 6px; height: 30px; padding: 0 14px;
+  background: var(--scp-accent); color: #fff; border: 0; border-radius: var(--r-s);
+  font: 600 12px 'Open Sans', sans-serif; cursor: pointer;
+}
+.btn-main:hover:not(:disabled) { background: var(--scp-accent-hover); }
+.btn-main:disabled { opacity: .55; cursor: default; }
+.btn-ghost {
+  display: inline-flex; align-items: center; gap: 6px; height: 30px; padding: 0 12px;
+  background: transparent; color: var(--scp-text-2); border: 1px solid var(--scp-line-2);
+  border-radius: var(--r-s); font: 600 12px 'Open Sans', sans-serif; cursor: pointer;
+}
+.btn-ghost:hover:not(:disabled) { border-color: var(--scp-accent); color: var(--scp-accent); }
+.btn-ghost:disabled { opacity: .55; cursor: default; }
+.tbl-grid { display: grid; grid-template-columns: 108px 1fr; gap: 8px; align-items: center; }
+.dlg-map {
+  font-size: 11px; line-height: 16px; color: var(--scp-text-2);
+  background: var(--scp-surface-2); border: 1px solid var(--scp-line); border-radius: var(--r-s);
+  padding: 8px 10px; margin-top: 10px; white-space: pre-wrap; display: none;
+}
+.dlg-map.show { display: block; }
+.dlg-hint { font-size: 10.5px; color: var(--scp-text-3); line-height: 15px; margin-top: 12px; }
+.dlg-hint code { background: var(--scp-surface-2); border: 1px solid var(--line, #e8e7ee); border-radius: 3px; padding: 0 3px; }
+
 /* ── Нижняя панель: инструменты ── */
 .bs-tools {
   margin-left: auto;
@@ -977,6 +1031,19 @@ td.cell-link:hover { color: var(--scp-accent); }
         <button type="button" id="miSyncCheck" role="menuitem">📡 Проверить соединение<span class="mi-sub" id="syncCheckSub">Сервер не найден — работаем локально</span></button>
       </div>
     </div>
+    <div class="pop-wrap" id="popChWrap">
+      <button class="src-btn" id="bCh" aria-haspopup="true" aria-expanded="false" title="Прямое подключение к ClickHouse (без сервера)">
+        <span class="src-dot" aria-hidden="true"></span><span class="src-lbl" id="chLbl">⚡ ClickHouse</span>
+      </button>
+      <div class="menu-pop" role="menu" aria-label="ClickHouse">
+        <div class="mi-hint" id="chMenuHint">Не подключено</div>
+        <button type="button" id="miChRefresh" role="menuitem">🔄 Обновить данные из CH<span class="mi-sub">Перечитать таблицы выбранного проекта</span></button>
+        <button type="button" id="miChMap" role="menuitem">🧭 Проверить соответствие колонок<span class="mi-sub">Какие поля дашборда распознались в таблицах</span></button>
+        <button type="button" id="miChSetup" role="menuitem">✎ Настроить подключение<span class="mi-sub">Хост, логин, проект и таблицы</span></button>
+        <hr>
+        <button type="button" id="miChOff" role="menuitem">⏻ Отключить ClickHouse<span class="mi-sub">Остаться на локальных данных</span></button>
+      </div>
+    </div>
     <button class="icon-btn p" id="bUpload" title="Загрузить книги XLSX с листами sku, res, prodsource, tlane">
       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
       <span>Загрузить данные</span>
@@ -1074,6 +1141,61 @@ td.cell-link:hover { color: var(--scp-accent); }
 <div id="graphTip" role="tooltip"></div>
 <div id="toastHost" aria-live="polite"></div>
 
+<!-- ═══════════════ ПРЯМОЕ ПОДКЛЮЧЕНИЕ К CLICKHOUSE: ДИАЛОГ ═══════════════ -->
+<div class="dlg-overlay" id="chDlg" role="dialog" aria-modal="true" aria-label="Прямое подключение к ClickHouse">
+  <div class="dlg-card">
+    <h3>⚡ Прямое подключение к ClickHouse</h3>
+    <div class="dlg-sub">Дашборд ходит в HTTP-интерфейс ClickHouse прямо из браузера — сервер синхронизации не нужен. Логин и данные остаются в этом браузере.</div>
+    <div class="dlg-grid">
+      <label for="chHost">Хост</label>
+      <input id="chHost" type="text" placeholder="ch.company.ru" autocomplete="off" spellcheck="false">
+      <label for="chPort">Порт</label>
+      <input id="chPort" type="text" inputmode="numeric" placeholder="443">
+      <label for="chProto">Протокол</label>
+      <select id="chProto">
+        <option value="https">HTTPS · 443</option>
+        <option value="http">HTTP · 8123</option>
+      </select>
+      <label for="chUser">Логин</label>
+      <input id="chUser" type="text" placeholder="readonly" autocomplete="off" spellcheck="false">
+      <label for="chPassword">Пароль</label>
+      <input id="chPassword" type="password" placeholder="пусто — если не задан">
+    </div>
+    <div class="dlg-row">
+      <button type="button" class="btn-main" id="chConnect">🔌 Подключиться</button>
+      <button type="button" class="btn-ghost" id="chDlgClose">Закрыть</button>
+      <span class="dlg-status" id="chConnStatus"></span>
+    </div>
+    <div id="chSetupMore" hidden>
+      <hr class="dlg-hr">
+      <div class="tbl-grid">
+        <label for="chDbSel">Проект</label>
+        <select id="chDbSel"></select>
+        <label for="chTblSku">Таблица sku · опц.</label>
+        <select id="chTblSku"></select>
+        <label for="chTblRes">Таблица res · опц.</label>
+        <select id="chTblRes"></select>
+        <label for="chTblPds">Таблица prodsource</label>
+        <select id="chTblPds"></select>
+        <label for="chTblTlane">Таблица tlane</label>
+        <select id="chTblTlane"></select>
+      </div>
+      <div class="dlg-row">
+        <button type="button" class="btn-ghost" id="chCheckMap">🧭 Проверить колонки</button>
+        <button type="button" class="btn-main" id="chLoadData">⬇ Загрузить данные</button>
+        <button type="button" class="btn-ghost" id="chDisconnect">⏻ Отключить</button>
+      </div>
+      <div class="dlg-map" id="chMapOut"></div>
+    </div>
+    <div class="dlg-hint">
+      Браузер подключается к серверу напрямую, поэтому на стороне ClickHouse должен быть разрешён
+      CORS для чужих источников. Если страница открыта по HTTPS, хост ClickHouse тоже должен
+      отвечать по HTTPS с действующим сертификатом: «смешанное» содержимое и самоподписанные
+      сертификаты браузер блокирует. Пароль передаётся параметром запроса — используйте аккаунт
+      с правами только на чтение.
+    </div>
+  </div>
+</div>
 <!-- ═══════════════ СКРИПТЫ МОДЕЛИ И ДВИЖКА ═══════════════ -->
 <script>
 'use strict';
@@ -2887,6 +3009,371 @@ async function pullModel() {
   }
 }
 
+/* ═══════════════ 14c. ПРЯМОЕ ПОДКЛЮЧЕНИЕ К CLICKHOUSE (опционально) ═════
+
+   Второй сетевой путь рядом с сервером синхронизации: дашборд ходит в
+   HTTP-интерфейс ClickHouse напрямую, из браузера. Подключился → выбрал
+   проект → загрузил разделы — и граф живёт на данных CH, без промежуточного
+   сервера и без Postgres. Локальный режим и режим сервера не трогаем.
+
+   Ключевые предосторожности:
+   · авторизация передаётся параметрами URL, а не заголовками: запрос
+     остаётся «простым» по CORS и не требует preflight OPTIONS, который
+     ClickHouse по умолчанию не обслуживает;
+   · на file:// сетевой слой не запускается — как и у сервера синхронизации;
+   · у каждого запроса есть таймаут, а объёмные выборки ограничены
+     CH_ROW_LIMIT, чтобы не утащить в браузер полхранилища;
+   · логин и пароль хранятся только в localStorage этого браузера —
+     заводите под это аккаунт с правами «только чтение».
+   ═══════════════════════════════════════════════════════════════════ */
+
+const LS_CH = 'inplan_ch_v1';
+const CH_TIMEOUT_MS = 15000;
+const CH_ROW_LIMIT = 500000;
+
+const CH = {
+  host: '',
+  port: 443,
+  proto: 'https',
+  user: '',
+  password: '',
+  online: false,
+  dbs: [],
+  db: '',
+  tables: { sku: '', res: '', prodsource: '', tlane: '' }
+};
+
+try {
+  const saved = JSON.parse(localStorage.getItem(LS_CH) || '{}');
+  ['host', 'port', 'proto', 'user', 'password', 'db'].forEach((k) => { if (saved[k] !== undefined && saved[k] !== '') CH[k] = saved[k]; });
+  Object.keys(CH.tables).forEach((k) => { if (saved.tables && saved.tables[k]) CH.tables[k] = saved.tables[k]; });
+} catch (e) { void e; }
+
+const persistCh = () => {
+  try {
+    localStorage.setItem(LS_CH, JSON.stringify({ host: CH.host, port: CH.port, proto: CH.proto, user: CH.user, password: CH.password, db: CH.db, tables: CH.tables }));
+  } catch (e) { void e; }
+};
+
+/* Поля диалога — источник значений для chConnect и когда диалог закрыт:
+   синхронизируем их с сохранённым профилем сразу при загрузке, чтобы
+   тихое автоподключение работало без показа диалога. */
+$('chHost').value = CH.host;
+$('chPort').value = CH.port;
+$('chProto').value = CH.proto;
+$('chUser').value = CH.user;
+$('chPassword').value = CH.password;
+$('chProto').onchange = () => { $('chPort').value = $('chProto').value === 'http' ? 8123 : 443; };
+
+/* Чип в шапке: зелёная точка и имя проекта, когда подключены; серый — нет. */
+function renderChChip() {
+  const btn = $('bCh');
+  if (!btn) return;
+  btn.classList.toggle('online', CH.online);
+  $('chLbl').textContent = CH.online ? '⚡ ' + CH.db : '⚡ ClickHouse';
+  $('chMenuHint').textContent = CH.online ? 'Подключено · проект ' + CH.db : 'Не подключено';
+  const disabled = !CH.online;
+  $('miChRefresh').disabled = disabled;
+  $('miChMap').disabled = disabled;
+  $('miChOff').disabled = disabled;
+}
+
+/* Имена баз и таблиц даёт сам сервер (SHOW ...), сюда они попадают уже
+   валидными; обратные кавычки — страховка от неожиданных символов. */
+const chIdent = (s) => '`' + String(s).replace(/`/g, '``') + '`';
+
+/* Единая точка доступа к HTTP-интерфейсу: сама выборка, формат ответа и
+   авторизация живут в параметрах URL, тело POST пустое — такой запрос
+   остаётся «простым» и не вызывает preflight. */
+async function chQuery(query, options = {}) {
+  if (IS_FILE_PROTOCOL) throw new Error('страница открыта как файл — сеть недоступна');
+  if (location.protocol === 'https:' && CH.proto === 'http') throw new Error('смешанное содержимое: страница на HTTPS не может ходить на HTTP-хост');
+  const qs = new URLSearchParams();
+  qs.set('query', query);
+  qs.set('default_format', 'JSONEachRow');
+  if (CH.user) qs.set('user', CH.user);
+  if (CH.password) qs.set('password', CH.password);
+  if (options.database) qs.set('database', options.database);
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), options.timeout || CH_TIMEOUT_MS);
+  let res;
+  try {
+    res = await fetch(CH.proto + '://' + CH.host + ':' + CH.port + '/?' + qs.toString(), { method: 'POST', signal: ctrl.signal });
+  } catch (err) {
+    if (err && err.name === 'AbortError') throw new Error('ClickHouse не ответил за ' + Math.round((options.timeout || CH_TIMEOUT_MS) / 1000) + ' с');
+    throw new Error('Нет доступа к ' + CH.host + ':' + CH.port + ' — проверьте хост и порт, CORS и сертификат (' + (err && err.message ? err.message : 'сеть недоступна') + ')');
+  } finally {
+    clearTimeout(timer);
+  }
+  if (res.status === 401 || res.status === 403) throw new Error('в доступе отказано (' + res.status + ') — проверьте логин и пароль');
+  const text = await res.text();
+  if (!res.ok) throw new Error('ClickHouse ответил ' + res.status + ': ' + text.split('\n')[0].slice(0, 300));
+  const rows = [];
+  for (const line of text.split('\n')) {
+    if (!line) continue;
+    try { rows.push(JSON.parse(line)); } catch (e) { void e; throw new Error('неожиданный ответ сервера (не JSONEachRow): ' + line.slice(0, 120)); }
+  }
+  return rows;
+}
+
+/* Проект = база данных вида Data_public*. */
+async function chListDatabases() {
+  const rows = await chQuery('SHOW DATABASES');
+  return rows.map((r) => r.name).filter((n) => /^Data_public/i.test(String(n))).sort();
+}
+
+async function chListTables(db) {
+  const rows = await chQuery('SHOW TABLES FROM ' + chIdent(db));
+  return rows.map((r) => r.name).sort();
+}
+
+/* Автовыбор таблиц по типовым именам. */
+const CH_TABLE_HINTS = {
+  sku: ['sku', 'skus', 'itemsku'],
+  res: ['res', 'res_sp', 'resources'],
+  prodsource: ['prodsource_sp', 'prodsource', 'prod_source', 'pds'],
+  tlane: ['tlane_prod_mot', 'tlane', 'transport_lanes', 'lanes']
+};
+
+function chGuessTable(kind, names) {
+  const lower = names.map((n) => String(n).toLowerCase());
+  for (const hint of CH_TABLE_HINTS[kind]) {
+    const i = lower.indexOf(hint);
+    if (i >= 0) return names[i];
+  }
+  return '';
+}
+
+/* Мягкоудалённые строки отсеиваем, если в таблице есть служебные колонки;
+   колонки может не быть — тогда повторяем запрос уже без фильтра. */
+const CH_DELETE_FILTERS = {
+  sku: 'coalesce(is_deleted, 0) = 0',
+  res: 'coalesce(is_deleted, 0) = 0',
+  prodsource: 'coalesce(is_deleted, 0) = 0 AND coalesce(delflag, 0) = 0',
+  tlane: 'coalesce(is_deleted, 0) = 0'
+};
+
+async function chSelectAll(kind, db, tbl, limit) {
+  const from = chIdent(db) + '.' + chIdent(tbl);
+  const opts = { database: db, timeout: 180000 };
+  try {
+    return { rows: await chQuery('SELECT * FROM ' + from + ' WHERE ' + CH_DELETE_FILTERS[kind] + ' LIMIT ' + limit, opts) };
+  } catch (e) {
+    if (!/unknown expression identifier|unknown identifier|no such column|missing columns/i.test(String(e.message))) throw e;
+    return { rows: await chQuery('SELECT * FROM ' + from + ' LIMIT ' + limit, opts) };
+  }
+}
+/* ── Диалог ── */
+function openChDialog() {
+  $('chHost').value = CH.host;
+  $('chPort').value = CH.port;
+  $('chProto').value = CH.proto;
+  $('chUser').value = CH.user;
+  $('chPassword').value = CH.password;
+  $('chConnStatus').className = 'dlg-status';
+  $('chConnStatus').textContent = CH.online ? 'Подключено' : '';
+  $('chConnStatus').classList.toggle('ok', CH.online);
+  $('chSetupMore').hidden = !CH.online;
+  $('chDlg').classList.add('show');
+}
+const closeChDialog = () => $('chDlg').classList.remove('show');
+
+function setChStatus(kind, text) {
+  const el = $('chConnStatus');
+  el.className = 'dlg-status ' + kind;
+  el.textContent = text;
+}
+
+function fillSelect(sel, names, current, emptyLabel) {
+  sel.innerHTML = '<option value="">' + esc(emptyLabel || '— не выбрано —') + '</option>' +
+    names.map((n) => '<option value="' + esc(n) + '"' + (n === current ? ' selected' : '') + '>' + esc(n) + '</option>').join('');
+}
+
+async function chConnect(quiet) {
+  CH.host = $('chHost').value.trim().replace(/^https?:\/\//, '').replace(/[/:].*$/, '');
+  CH.port = Number($('chPort').value) || 443;
+  CH.proto = $('chProto').value;
+  CH.user = $('chUser').value.trim();
+  CH.password = $('chPassword').value;
+  if (!CH.host) { if (!quiet) setChStatus('err', 'Укажите хост'); return false; }
+
+  if (!quiet) setChStatus('busy', 'Подключение...');
+  renderChChip();
+  try {
+    CH.dbs = await chListDatabases();
+    CH.online = true;
+    if (!CH.db || !CH.dbs.includes(CH.db)) CH.db = CH.dbs[0] || '';
+    persistCh();
+    renderChChip();
+    fillSelect($('chDbSel'), CH.dbs, CH.db);
+    await chLoadTablesIntoDialog();
+    $('chSetupMore').hidden = false;
+    if (!quiet) setChStatus('ok', 'Подключено: проектов ' + CH.dbs.length);
+    return true;
+  } catch (err) {
+    CH.online = false;
+    renderChChip();
+    if (!quiet) setChStatus('err', err.message);
+    return false;
+  }
+}
+
+async function chLoadTablesIntoDialog() {
+  const names = await chListTables(CH.db);
+  ['sku', 'res', 'prodsource', 'tlane'].forEach((kind) => {
+    if (!CH.tables[kind] || !names.includes(CH.tables[kind])) CH.tables[kind] = chGuessTable(kind, names);
+  });
+  fillSelect($('chTblSku'), names, CH.tables.sku, '⛭ достроить из tlane/PDS');
+  fillSelect($('chTblRes'), names, CH.tables.res, '⛭ пропустить раздел');
+  fillSelect($('chTblPds'), names, CH.tables.prodsource);
+  fillSelect($('chTblTlane'), names, CH.tables.tlane);
+  persistCh();
+}
+
+function readChTablesFromDialog() {
+  CH.tables.sku = $('chTblSku').value;
+  CH.tables.res = $('chTblRes').value;
+  CH.tables.prodsource = $('chTblPds').value;
+  CH.tables.tlane = $('chTblTlane').value;
+  persistCh();
+}
+
+/* Проверка распознавания колонок: берём образец строк и смотрим, сколько из них
+   проходит обязательные поля, и чего именно не хватает. */
+const CH_REQUIRED_FIELDS = { sku: ['item', 'loc'], res: ['id'], prodsource: ['item', 'loc'], tlane: ['locfr', 'locto'] };
+
+async function chCheckMapping() {
+  readChTablesFromDialog();
+  const out = $('chMapOut');
+  out.classList.add('show');
+  out.textContent = 'Проверяю образцы строк...';
+  const lines = [];
+  for (const kind of ['sku', 'res', 'prodsource', 'tlane']) {
+    const tbl = CH.tables[kind];
+    if (!tbl) {
+      if (kind === 'sku') lines.push('⛭ sku: таблица не выбрана — раздел будет достроен из tlane/prodsource');
+      else if (kind === 'res') lines.push('⛭ res: раздел пропущен — ресурсов на графе не будет');
+      else lines.push('✘ ' + kind + ': таблица не выбрана');
+      continue;
+    }
+    try {
+      const sample = await chQuery('SELECT * FROM ' + chIdent(CH.db) + '.' + chIdent(tbl) + ' LIMIT 30', { database: CH.db });
+      if (!sample.length) { lines.push('✘ ' + kind + ' (' + tbl + '): таблица пуста'); continue; }
+      const cols = Object.keys(normHeaderRows(sample.slice(0, 1))[0] || {});
+      const mapped = normHeaderRows(sample).map(MAPPERS[kind]);
+      const ok = mapped.filter(REQUIRED[kind]).length;
+      if (ok === 0) {
+        const missing = CH_REQUIRED_FIELDS[kind].filter((f) => mapped.every((r) => !r[f]));
+        lines.push('✘ ' + kind + ' (' + tbl + '): не распознаны обязательные поля [' + missing.join(', ') + ']\n   колонки таблицы: ' + cols.join(', '));
+      } else {
+        lines.push((ok === mapped.length ? '✔' : '◐') + ' ' + kind + ' (' + tbl + '): распознано ' + ok + ' из ' + mapped.length + ' строк образца · колонок в таблице: ' + cols.length);
+      }
+    } catch (e) {
+      lines.push('✘ ' + kind + ' (' + tbl + '): ' + e.message);
+    }
+  }
+  out.textContent = lines.join('\n');
+}
+
+/* Полная загрузка модели из CH — тот же финиш, что у импорта XLSX. */
+async function chImportModel() {
+  readChTablesFromDialog();
+  if (!CH.online || !CH.db) { toast('Сначала подключитесь к ClickHouse', 'warn'); return; }
+  setBusy(true);
+  const merged = { sku: [], res: [], prodsource: [], tlane: [] };
+  const problems = [];
+  const truncated = [];
+  try {
+    for (const kind of ['sku', 'res', 'prodsource', 'tlane']) {
+      const tbl = CH.tables[kind];
+      if (!tbl) {
+        // sku/res — необязательные разделы: sku достроится из плеч и рецептур,
+        // res останется пустым. Это не ошибка, так задумано.
+        if (kind === 'prodsource' || kind === 'tlane') problems.push(kind + ': таблица не выбрана');
+        continue;
+      }
+      try {
+        const sel = await chSelectAll(kind, CH.db, tbl, CH_ROW_LIMIT);
+        if (sel.rows.length >= CH_ROW_LIMIT) truncated.push(kind);
+        merged[kind] = normHeaderRows(sel.rows).map(MAPPERS[kind]).filter(REQUIRED[kind]);
+      } catch (e) {
+        problems.push(kind + ' (' + tbl + '): ' + e.message);
+      }
+    }
+
+    MODEL.sku = merged.sku;
+    MODEL.res = merged.res;
+    MODEL.prodsource = merged.prodsource;
+    MODEL.tlane = merged.tlane;
+
+    // Всегда достраиваем SKU из плеч и рецептур: если таблица sku не выбрана,
+    // это и есть основной источник раздела; если выбрана — докинет недостающие пары.
+    deriveSkuFromLoadedData();
+    resetFilters();
+    resetGraphView();
+    runModelAudit();
+    persistModel();
+    refreshUI(true);
+    if (typeof zoomToFit === 'function') zoomToFit();
+
+    // Статистику считаем ПОСЛЕ достройки SKU — иначе при невыбранной таблице sku
+    // тост показывал бы «sku: 0», хотя раздел полон.
+    const stat = ['sku', 'res', 'prodsource', 'tlane']
+      .filter((k) => MODEL[k].length)
+      .map((k) => k + ': ' + MODEL[k].length + (k === 'sku' && !CH.tables.sku ? ' (авто)' : ''))
+      .join(' · ');
+    toast((stat || 'таблицы пусты'), stat ? 'ok' : 'warn', 'Загружено из ClickHouse · ' + CH.db);
+    if (!CH.tables.sku) toast('Таблица SKU не выбрана — раздел достроен из плеч и рецептур (помечен тегом «авто»)', 'info', 'Авто-достройка', 7000);
+    if (problems.length) toast(problems.join('\n'), 'err', 'Часть разделов не загрузилась', 12000);
+    if (truncated.length) toast('Разделы дочитаны не целиком (лимит ' + CH_ROW_LIMIT + ' строк): ' + truncated.join(', '), 'warn', 'Данные усечены', 12000);
+    return !problems.length;
+  } finally {
+    setBusy(false);
+  }
+}
+
+function chDisconnect() {
+  CH.online = false;
+  renderChChip();
+  toast('Подключение к ClickHouse сброшено. Логин сохранён для быстрого возврата; данные в дашборде остались.', 'info', 'ClickHouse');
+}
+
+$('bCh').onclick = (e) => {
+  e.stopPropagation();
+  if (!CH.online) {
+    openChDialog();
+    return;
+  }
+  togglePopup('popChWrap', 'bCh');
+};
+$('popChWrap').querySelector('.menu-pop').addEventListener('click', () => closeAllPopups());
+$('chDlgClose').onclick = closeChDialog;
+$('chDlg').addEventListener('click', (e) => { if (e.target === $('chDlg')) closeChDialog(); });
+$('chConnect').onclick = () => chConnect(false);
+$('chDbSel').onchange = async () => {
+  CH.db = $('chDbSel').value;
+  persistCh();
+  renderChChip();
+  try { await chLoadTablesIntoDialog(); } catch (e) { setChStatus('err', e.message); }
+};
+['chTblSku', 'chTblRes', 'chTblPds', 'chTblTlane'].forEach((id) => { $(id).onchange = readChTablesFromDialog; });
+$('chCheckMap').onclick = () => chCheckMapping();
+$('chLoadData').onclick = async () => {
+  const ok = await chImportModel();
+  if (ok) closeChDialog();
+};
+$('chDisconnect').onclick = () => { chDisconnect(); closeChDialog(); };
+$('miChRefresh').onclick = () => chImportModel();
+$('miChSetup').onclick = openChDialog;
+$('miChMap').onclick = () => { openChDialog(); chCheckMapping(); };
+$('miChOff').onclick = chDisconnect;
+
+/* Тихое переподключение при открытии страницы, если подключение уже настраивали */
+async function chAutoConnect() {
+  if (!CH.host || !CH.user) return;
+  await chConnect(true);
+}
+
 /* ═══════════════ 15. ОБРАБОТЧИКИ ИНТЕРФЕЙСА ═══════════════ */
 
 // Выпадающие меню
@@ -3129,6 +3616,9 @@ document.addEventListener('keydown', (e) => {
   renderSyncState('', 'Локально');
   if (!IS_FILE_PROTOCOL) checkServer(false);
   else $('syncCheckSub').textContent = 'Файл открыт напрямую — сервер недоступен';
+  // ClickHouse напрямую: рисуем чип и тихо переподключаемся, если настраивали.
+  renderChChip();
+  chAutoConnect();
 })();
 
 </script>
