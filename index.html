@@ -349,11 +349,22 @@ header {
 .sb-hdr {
   padding: 9px 12px;
   display: flex;
+  flex-wrap: wrap;
+  row-gap: 2px;
   align-items: center;
   justify-content: space-between;
   border-bottom: 1px solid var(--scp-line);
   font-weight: 700;
   font-size: 12.5px;
+}
+.sb-acts {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  column-gap: 8px;
+  row-gap: 2px;
 }
 .sb-hdr a { font-size: 11px; color: var(--scp-accent); text-decoration: none; cursor: pointer; }
 .sb-search {
@@ -376,17 +387,46 @@ header {
   padding: 4px 0;
 }
 .sb-grp-title {
-  padding: 6px 12px 3px;
-  font-size: 10.5px;
-  font-weight: 700;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 8px 5px 10px;
+  margin-top: 2px;
+  background: none;
+  border: 0;
+  border-radius: var(--r-s);
+  font: 700 10.5px 'Open Sans', sans-serif;
   text-transform: uppercase;
   letter-spacing: .5px;
   color: var(--scp-text-3);
-  display: flex;
-  justify-content: space-between;
+  cursor: pointer;
+  text-align: left;
+  user-select: none;
 }
+.sb-grp-title:hover { color: var(--scp-accent); background: var(--scp-accent-bg); }
+.sb-grp-caret {
+  display: inline-flex;
+  width: 10px;
+  flex: 0 0 auto;
+  font-size: 9px;
+  color: var(--scp-text-3);
+  transition: transform .15s ease;
+}
+.sb-grp.open > .sb-grp-title .sb-grp-caret { transform: rotate(90deg); }
+.sb-grp-count {
+  margin-left: auto;
+  background: var(--scp-line);
+  border-radius: 9px;
+  padding: 0 7px;
+  font-size: 9.5px;
+  font-weight: 600;
+  color: var(--scp-text-2);
+}
+.sb-grp-body { display: none; }
+.sb-grp.open > .sb-grp-body { display: block; }
 .sb-item {
-  padding: 4px 10px 4px 16px;
+  padding: 4px 10px 4px 24px;
   display: flex;
   align-items: center;
   gap: 7px;
@@ -1060,8 +1100,10 @@ td.cell-link:hover { color: var(--scp-accent); }
   <aside class="sidebar" id="sidebar" aria-label="Узлы сети">
     <div class="sb-hdr">
       <span>Узлы сети</span>
-      <div>
-        <button type="button" class="lnk" id="btnNodesClr" style="margin-right:8px">Сброс</button>
+      <div class="sb-acts">
+        <button type="button" class="lnk" id="bSbExpandAll" title="Развернуть все группы узлов">Развернуть</button>
+        <button type="button" class="lnk" id="bSbCollapseAll" title="Свернуть все группы узлов">Свернуть</button>
+        <button type="button" class="lnk" id="btnNodesClr">Сброс</button>
         <button class="icon-btn" id="bToggleSb" style="width:20px;height:20px;border:0" title="Свернуть панель" aria-label="Свернуть панель узлов">‹</button>
       </div>
     </div>
@@ -1174,7 +1216,7 @@ td.cell-link:hover { color: var(--scp-accent); }
         <select id="chDbSel"></select>
         <label for="chTblSku">Таблица sku · опц.</label>
         <select id="chTblSku"></select>
-        <label for="chTblRes">Таблица res · опц.</label>
+        <label for="chTblRes">Ресурсы: res / rescapacity</label>
         <select id="chTblRes"></select>
         <label for="chTblPds">Таблица prodsource</label>
         <select id="chTblPds"></select>
@@ -1315,6 +1357,10 @@ const SORT_STATE = {};
 let ROW_LIMIT = 400;
 const ROW_STEP = 400;
 
+/* Группы «Узлов сети» по умолчанию свёрнуты: в Set попадают только те,
+   что пользователь раскрыл. Во время поиска группы раскрываются принудительно. */
+const SIDEBAR_GROUPS_OPEN = new Set();
+
 /* ═══════════════ 3. ИМПОРТ XLSX ═══════════════ */
 
 const normalizeKey = (k) => String(k === null || k === undefined ? '' : k).trim().toLowerCase().replace(/[^a-zа-яё0-9]/g, '');
@@ -1372,14 +1418,41 @@ const MAPPERS = {
     minlotsize: orDefault(toNum(pickCol(r, ['Минимальная партия', 'minlotsize', 'min_lot'])), 0),
     maxlotsize: orDefault(toNum(pickCol(r, ['Максимальная партия', 'maxlotsize', 'max_lot'])), 0)
   }),
-  res: (r) => ({
-    id: pickStr(r, ['Ресурс: системный код', 'res', 'Ресурс', 'id']),
-    loc: pickStr(r, ['Локация: системный код', 'loc', 'Локация', 'Завод: системный код']),
-    name: pickStr(r, ['Ресурс: наименование', 'name', 'Наименование ресурса']),
-    type: pickStr(r, ['Вид ресурса: наименование', 'Тип Ресурса', 'type', 'Вид ресурса']) || '1',
-    capuom: pickStr(r, ['capuom', 'ЕИ мощности', 'Ед. изм. мощности']) || 'H',
-    capacity: orDefault(toNum(pickCol(r, ['defaultbucketcapacity', 'ФРВ Номинальный', 'Доступная мощность (итог)', 'capacity', 'Мощность'])), 24)
-  }),
+  res: (r) => {
+    const res = pickStr(r, ['res', 'Ресурс: системный код', 'Ресурс', 'id']);
+    const id = res || pickStr(r, ['resequipnum', 'Ресурс: оборудование', 'Оборудование']);
+    const loc = pickStr(r, ['loc', 'Локация: системный код', 'Локация', 'Завод: системный код']);
+    /* Классическая таблица res против rescapacity: если в данных есть хотя бы
+       один признак «полной» схемы — мощности оставляем как есть (может быть
+       пусто), иначе применяем прежнее значение по умолчанию 24. */
+    const capLike = r.netavailbucketcapacity !== undefined || r.calcavailablebucketcapacity !== undefined ||
+      r.availbucketcapacity !== undefined || r.defaultbucketcapacity !== undefined ||
+      r.calendarcapacity !== undefined || r.periodid !== undefined || r.resequipnum !== undefined ||
+      r.oee !== undefined || r.currentmaintenancepctsum !== undefined || r.restype !== undefined;
+    /* Порядок: сначала «нетто» из rescapacity, затем прежняя цепочка
+       классических колонок (в т.ч. русские заголовки из книг). */
+    const capRaw = toNum(pickCol(r, ['netavailbucketcapacity', 'defaultbucketcapacity', 'ФРВ Номинальный', 'Доступная мощность (итог)', 'capacity', 'Мощность']), null);
+    const capacity = capRaw !== null ? capRaw : (capLike ? null : 24);
+    return {
+      id,
+      equip: res ? pickStr(r, ['resequipnum', 'Ресурс: оборудование', 'Оборудование']) : '',
+      loc,
+      name: pickStr(r, ['name', 'Ресурс: наименование', 'Наименование ресурса']),
+      type: pickStr(r, ['restype', 'Вид ресурса: наименование', 'Тип Ресурса', 'type', 'Вид ресурса']),
+      capuom: pickStr(r, ['capuom', 'ЕИ мощности', 'Ед. изм. мощности']) || 'H',
+      capacity,
+      calcavail: toNum(pickCol(r, ['calcavailablebucketcapacity']), null),
+      defaultcap: toNum(pickCol(r, ['defaultbucketcapacity']), null),
+      availcap: toNum(pickCol(r, ['availbucketcapacity']), null),
+      oee: toNum(pickCol(r, ['oee']), null),
+      maintpct: toNum(pickCol(r, ['currentmaintenancepctsum', 'currentmaintenancepct']), null),
+      calendar: toNum(pickCol(r, ['calendarcapacity']), null),
+      periodid: pickStr(r, ['periodid']),
+      periodtype: pickStr(r, ['periodtype']),
+      datefr: pickStr(r, ['datefr']),
+      updated: pickStr(r, ['update_date_time'])
+    };
+  },
   prodsource: (r) => ({
     prodsource: pickStr(r, ['prodsource', 'Производственный источник поставки', 'Рецепт', 'id']),
     item: pickStr(r, ['item', 'Продукт: системный код', 'Продукт']),
@@ -1402,6 +1475,23 @@ const REQUIRED = {
   prodsource: (x) => x.item && x.loc,
   tlane: (x) => x.locfr && x.locto
 };
+
+/* Нормализация дат/периодов для сравнения строк rescapacity */
+const periodKey = (r) => String(r.datefr || r.periodid || '');
+
+/* rescapacity хранит по строке на период (periodid/periodtype/datefr).
+   Для графа и топологии ресурс должен быть один — берём строку последнего
+   актуального периода (самый поздний datefr, иначе самый поздний periodid).
+   Если признаков периода нет — строки остаются как есть. */
+function collapseResPeriods(rows) {
+  if (!rows.length || !rows.every((r) => periodKey(r))) return rows;
+  const byId = new Map();
+  rows.forEach((r) => {
+    const k = r.id;
+    if (!byId.has(k) || periodKey(r) > periodKey(byId.get(k))) byId.set(k, r);
+  });
+  return Array.from(byId.values());
+}
 
 /* Одна книга → набор распознанных сущностей (без записи в MODEL). */
 function extractFromWorkbook(wb) {
@@ -1464,8 +1554,10 @@ async function importFiles(fileList) {
 
     // Загруженные разделы заменяют модель целиком; не загруженные — очищаются,
     // чтобы в модели не оставалось перемешанных демо-строк.
+    // rescapacity несёт строку на период — для дашборда оставляем строку
+    // последнего актуального периода (см. collapseResPeriods).
     MODEL.sku = merged.sku;
-    MODEL.res = merged.res;
+    MODEL.res = collapseResPeriods(merged.res);
     MODEL.prodsource = merged.prodsource;
     MODEL.tlane = merged.tlane;
 
@@ -1567,8 +1659,14 @@ function runModelAudit() {
 
   // ── Ресурсы ──
   MODEL.res.forEach((r) => {
-    if (!r.loc) push('warn', 'Ресурсы', r.id, 'У ресурса не указана локация — он не попадёт на схему', []);
-    if (r.capacity <= 0) push('warn', 'Ресурсы', r.id, 'Нулевая или отрицательная мощность: ' + r.capacity, [r.loc]);
+    if (!r.loc) { push('warn', 'Ресурсы', r.id, 'У ресурса не указана локация — он не попадёт на схему', []); return; }
+    const eff = r.capacity != null ? r.capacity
+      : (r.calcavail != null ? r.calcavail
+        : (r.defaultcap != null ? r.defaultcap : r.availcap));
+    if (eff == null) push('warn', 'Ресурсы', r.id, 'Не определена доступная мощность (нет netavailbucketcapacity / defaultbucketcapacity)', [r.loc]);
+    else if (eff <= 0) push('warn', 'Ресурсы', r.id, 'Нулевая или отрицательная доступная мощность: ' + eff, [r.loc]);
+    if (r.oee != null && r.oee < 1) push('warn', 'Ресурсы', r.id, 'OEE ниже 1 (' + r.oee + ') — эффективность использования ниже номинальной', [r.loc]);
+    if (r.maintpct != null && r.maintpct > 0) push('info', 'Ресурсы', r.id, 'Обслуживание занимает ' + r.maintpct + '% фонда времени', [r.loc]);
   });
 
   // ── Топология: тупики, изоляты, циклы ──
@@ -2364,6 +2462,7 @@ function allNetworkLocations() {
 function renderSidebarNodes() {
   const treeEl = $('sbTree');
   const q = ($('sbSearchInput').value || '').trim().toLowerCase();
+  const searching = q.length > 0;
   const groups = new Map();
 
   allNetworkLocations().forEach((loc) => {
@@ -2376,7 +2475,18 @@ function renderSidebarNodes() {
   const cats = [...groups.entries()].sort((a, b) => a[1].rank - b[1].rank);
   const parts = [];
   cats.forEach(([cat, g]) => {
-    parts.push('<div class="sb-grp-title"><span>' + esc(cat) + '</span><span>' + g.list.length + '</span></div>');
+    // Во время поиска группы раскрываются принудительно; в покое — по выбору
+    // пользователя (по умолчанию всё свёрнуто, см. SIDEBAR_GROUPS_OPEN).
+    const open = searching || SIDEBAR_GROUPS_OPEN.has(cat);
+    parts.push('<div class="sb-grp' + (open ? ' open' : '') + '">');
+    parts.push(
+      '<button type="button" class="sb-grp-title" data-grp="' + esc(cat) + '" aria-expanded="' + (open ? 'true' : 'false') + '">' +
+      '<span class="sb-grp-caret" aria-hidden="true">▸</span>' +
+      '<span>' + esc(cat) + '</span>' +
+      '<span class="sb-grp-count">' + g.list.length + '</span>' +
+      '</button>'
+    );
+    parts.push('<div class="sb-grp-body">');
     g.list.forEach((id) => {
       const on = FILTERS.nodes.has(id);
       // data-атрибуты вместо inline onchange: имя локации с кавычкой
@@ -2388,10 +2498,31 @@ function renderSidebarNodes() {
         '<span title="' + esc(id) + '">' + esc(id) + '</span></label>'
       );
     });
+    parts.push('</div></div>');
   });
 
   treeEl.innerHTML = parts.join('') || '<div style="padding:16px;text-align:center;color:var(--scp-text-3)">Узлов не найдено</div>';
 }
+
+$('sbTree').addEventListener('click', (e) => {
+  const t = e.target.closest('.sb-grp-title');
+  if (!t) return;
+  const cat = t.dataset.grp;
+  if (!cat) return;
+  if (SIDEBAR_GROUPS_OPEN.has(cat)) SIDEBAR_GROUPS_OPEN.delete(cat); else SIDEBAR_GROUPS_OPEN.add(cat);
+  renderSidebarNodes();
+});
+
+/* Развернуть / свернуть все группы узлов */
+const treeCats = () => Array.from(document.querySelectorAll('#sbTree .sb-grp-title')).map((b) => b.dataset.grp).filter(Boolean);
+function sidebarSetAllGroups(open) {
+  treeCats().forEach((cat) => {
+    if (open) SIDEBAR_GROUPS_OPEN.add(cat); else SIDEBAR_GROUPS_OPEN.delete(cat);
+  });
+  renderSidebarNodes();
+}
+$('bSbExpandAll').onclick = () => sidebarSetAllGroups(true);
+$('bSbCollapseAll').onclick = () => sidebarSetAllGroups(false);
 
 $('sbTree').addEventListener('change', (e) => {
   const id = e.target.dataset.node;
@@ -2483,6 +2614,40 @@ $('listPds').addEventListener('change', (e) => {
 
 /* ═══════════════ 11. НИЖНИЕ ТАБЛИЦЫ ═══════════════ */
 
+/* Раздел «Ресурсы и мощности» умеет два набора колонок:
+   · классический res (id/loc/name/type/capuom/capacity) — из книг и старых витрин;
+   · полная схема rescapacity (netavailbucketcapacity, oee, периоды, обслуживание).
+   Набор выбирается автоматически по фактическим полям загруженных строк. */
+const RES_CLASSIC_COLS = [
+  { k: 'id', t: 'Код ресурса', bold: true },
+  { k: 'loc', t: 'Локация', link: true },
+  { k: 'name', t: 'Наименование / Передел' },
+  { k: 'type', t: 'Тип' },
+  { k: 'capuom', t: 'Ед. изм.' },
+  { k: 'capacity', t: 'Мощность/сут', num: true }
+];
+const RES_CAPACITY_COLS = [
+  { k: 'id', t: 'Ресурс (res)', bold: true },
+  { k: 'equip', t: 'Оборудование', code: true },
+  { k: 'loc', t: 'Локация', link: true },
+  { k: 'type', t: 'Тип ресурса (restype)' },
+  { k: 'datefr', t: 'Период с', title: 'datefr — период строки (для графа берётся самый свежий)' },
+  { k: 'capacity', t: 'Мощность нетто', num: true, title: 'netavailbucketcapacity' },
+  { k: 'defaultcap', t: 'Номинал', num: true, title: 'defaultbucketcapacity' },
+  { k: 'calcavail', t: 'Расч. доступность', num: true, title: 'calcavailablebucketcapacity' },
+  { k: 'calendar', t: 'Календ. фонд', num: true, title: 'calendarcapacity' },
+  { k: 'oee', t: 'OEE', num: true },
+  { k: 'maintpct', t: 'Обслуж., %', num: true, title: 'currentmaintenancepctsum' },
+  { k: 'updated', t: 'Обновлено', title: 'update_date_time' }
+];
+const resUsesCapacity = (rows) => rows.length > 0 && rows.some((r) =>
+  r.oee != null || r.calcavail != null || r.defaultcap != null || r.availcap != null ||
+  r.calendar != null || r.maintpct != null || r.periodtype || r.datefr);
+const resColsFor = (rows) => (resUsesCapacity(rows) ? RES_CAPACITY_COLS : RES_CLASSIC_COLS);
+
+/* Колонки активной вкладки: у «res» это функция от данных, у остальных — массив */
+const tableCols = (def, ds) => (typeof def.cols === 'function' ? def.cols(ds) : def.cols);
+
 const TABLE_DEFS = {
   sku: {
     cols: [
@@ -2505,14 +2670,7 @@ const TABLE_DEFS = {
     rows: (ds) => ds.tlane
   },
   res: {
-    cols: [
-      { k: 'id', t: 'Код ресурса', bold: true },
-      { k: 'loc', t: 'Локация', link: true },
-      { k: 'name', t: 'Наименование / Передел' },
-      { k: 'type', t: 'Тип' },
-      { k: 'capuom', t: 'Ед. изм.' },
-      { k: 'capacity', t: 'Мощность/сут', num: true }
-    ],
+    cols: (ds) => resColsFor(ds.res),
     rows: (ds) => ds.res
   },
   prodsource: {
@@ -2543,7 +2701,7 @@ function currentTableRows() {
   let rows = TABLE_DEFS[ACTIVE_TAB].rows(ds);
   if (TABLE_QUERY) {
     const q = TABLE_QUERY.toLowerCase();
-    const cols = TABLE_DEFS[ACTIVE_TAB].cols;
+    const cols = tableCols(TABLE_DEFS[ACTIVE_TAB], ds);
     rows = rows.filter((r) => cols.some((c) => String(r[c.k] === undefined ? '' : r[c.k]).toLowerCase().includes(q)));
   }
   const s = SORT_STATE[ACTIVE_TAB];
@@ -2567,20 +2725,21 @@ function renderBottomTable() {
   $('cntAudit').textContent = MODEL.audit.length;
 
   const def = TABLE_DEFS[ACTIVE_TAB];
+  const cols = tableCols(def, ds);
   const rows = currentTableRows();
   const shown = rows.slice(0, ROW_LIMIT);
   const s = SORT_STATE[ACTIVE_TAB];
 
   const parts = ['<table><thead><tr>'];
-  def.cols.forEach((c) => {
+  cols.forEach((c) => {
     const ind = s && s.k === c.k ? '<span class="sort-ind">' + (s.dir === 'asc' ? '▲' : '▼') + '</span>' : '';
-    parts.push('<th class="sortable" data-sort="' + esc(c.k) + '" title="Сортировать">' + esc(c.t) + ind + '</th>');
+    parts.push('<th class="sortable" data-sort="' + esc(c.k) + '" title="' + esc(c.title || 'Сортировать') + '">' + esc(c.t) + ind + '</th>');
   });
   parts.push('</tr></thead><tbody>');
 
   shown.forEach((r) => {
     parts.push('<tr>');
-    def.cols.forEach((c) => {
+    cols.forEach((c) => {
       const raw = r[c.k];
       let cell;
       if (c.level) cell = '<span class="tag-' + esc(raw) + '">' + esc(LEVEL_LABEL[raw] || raw) + '</span>';
@@ -2670,7 +2829,7 @@ function switchMode(mode) {
 
 const SHEET_COLS = {
   sku: ['item', 'loc', 'res', 'minlotsize', 'maxlotsize'],
-  res: ['id', 'loc', 'name', 'type', 'capuom', 'capacity'],
+  res: RES_CLASSIC_COLS.map((c) => c.k),
   prodsource: ['prodsource', 'item', 'loc', 'prodver', 'prio', 'outputqty'],
   tlane: ['item', 'locfr', 'locto', 'mot', 'leadtime']
 };
@@ -2685,7 +2844,7 @@ function exportXlsx() {
       return o;
     })), name);
     add('sku', ds.sku, SHEET_COLS.sku);
-    add('res', ds.res, SHEET_COLS.res);
+    add('res', ds.res, resColsFor(ds.res).map((c) => c.k));
     add('prodsource', ds.pds, SHEET_COLS.prodsource);
     add('tlane', ds.tlane, SHEET_COLS.tlane);
     XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(MODEL.audit.map((a) => ({
@@ -2699,12 +2858,14 @@ function exportXlsx() {
 }
 
 function exportCsv() {
+  const ds = getFilteredDataset();
   const def = TABLE_DEFS[ACTIVE_TAB];
+  const cols = tableCols(def, ds);
   const rows = currentTableRows();
   if (!rows.length) { toast('В текущей вкладке нет строк', 'warn'); return; }
   const q = (v) => '"' + String(v === undefined || v === null ? '' : v).replace(/"/g, '""') + '"';
-  const csv = [def.cols.map((c) => q(c.t)).join(';')]
-    .concat(rows.map((r) => def.cols.map((c) => q(c.level ? LEVEL_LABEL[r[c.k]] : r[c.k])).join(';')))
+  const csv = [cols.map((c) => q(c.t)).join(';')]
+    .concat(rows.map((r) => cols.map((c) => q(c.level ? LEVEL_LABEL[r[c.k]] : r[c.k])).join(';')))
     .join('\r\n');
   // BOM — иначе Excel открывает кириллицу «кракозябрами»
   downloadBlob(new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8' }), 'inplan-' + ACTIVE_TAB + '.csv');
@@ -3131,7 +3292,7 @@ async function chListTables(db) {
 /* Автовыбор таблиц по типовым именам. */
 const CH_TABLE_HINTS = {
   sku: ['sku', 'skus', 'itemsku'],
-  res: ['res', 'res_sp', 'resources'],
+  res: ['res', 'rescapacity', 'res_sp', 'resources'],
   prodsource: ['prodsource_sp', 'prodsource', 'prod_source', 'pds'],
   tlane: ['tlane_prod_mot', 'tlane', 'transport_lanes', 'lanes']
 };
@@ -3145,22 +3306,28 @@ function chGuessTable(kind, names) {
   return '';
 }
 
-/* Мягкоудалённые строки отсеиваем, если в таблице есть служебные колонки;
-   колонки может не быть — тогда повторяем запрос уже без фильтра. */
-const CH_DELETE_FILTERS = {
-  sku: 'coalesce(is_deleted, 0) = 0',
-  res: 'coalesce(is_deleted, 0) = 0',
-  prodsource: 'coalesce(is_deleted, 0) = 0 AND coalesce(delflag, 0) = 0',
-  tlane: 'coalesce(is_deleted, 0) = 0'
+/* Мягкоудалённые строки отсеиваем, если в таблице есть служебные колонки.
+   Флаги в разных версиях витрин бывают и числовыми, и строковыми
+   (0 / '0' / false / ''), поэтому сравниваем их в текстовом виде. Иначе
+   ClickHouse роняет запрос: «There is no supertype for types String, UInt8»
+   (Code 386) — именно так падала загрузка prodsource_sp.
+   Колонки может не быть — тогда повторяем запрос уже без фильтра. */
+const flagActive = (col) => "(" + col + " IS NULL OR lower(toString(" + col + ")) IN ('0','false','no','n',''))";
+
+const CH_ACTIVE_FILTERS = {
+  sku: flagActive('is_deleted'),
+  res: flagActive('is_deleted'),
+  prodsource: flagActive('is_deleted') + ' AND ' + flagActive('delflag'),
+  tlane: flagActive('is_deleted')
 };
 
 async function chSelectAll(kind, db, tbl, limit) {
   const from = chIdent(db) + '.' + chIdent(tbl);
   const opts = { database: db, timeout: 180000 };
   try {
-    return { rows: await chQuery('SELECT * FROM ' + from + ' WHERE ' + CH_DELETE_FILTERS[kind] + ' LIMIT ' + limit, opts) };
+    return { rows: await chQuery('SELECT * FROM ' + from + ' WHERE ' + CH_ACTIVE_FILTERS[kind] + ' LIMIT ' + limit, opts) };
   } catch (e) {
-    if (!/unknown expression identifier|unknown identifier|no such column|missing columns/i.test(String(e.message))) throw e;
+    if (!/unknown expression identifier|unknown identifier|no such column|missing columns|unknown function|there is no supertype/i.test(String(e.message))) throw e;
     return { rows: await chQuery('SELECT * FROM ' + from + ' LIMIT ' + limit, opts) };
   }
 }
@@ -3308,7 +3475,7 @@ async function chImportModel() {
     }
 
     MODEL.sku = merged.sku;
-    MODEL.res = merged.res;
+    MODEL.res = collapseResPeriods(merged.res);
     MODEL.prodsource = merged.prodsource;
     MODEL.tlane = merged.tlane;
 
@@ -3330,6 +3497,7 @@ async function chImportModel() {
       .join(' · ');
     toast((stat || 'таблицы пусты'), stat ? 'ok' : 'warn', 'Загружено из ClickHouse · ' + CH.db);
     if (!CH.tables.sku) toast('Таблица SKU не выбрана — раздел достроен из плеч и рецептур (помечен тегом «авто»)', 'info', 'Авто-достройка', 7000);
+    if (CH.tables.res && resUsesCapacity(MODEL.res)) toast('Раздел построен из rescapacity: на ресурс показана строка последнего периода (' + MODEL.res.length + ' ресурсов)', 'info', 'Ресурсы и мощности', 7000);
     if (problems.length) toast(problems.join('\n'), 'err', 'Часть разделов не загрузилась', 12000);
     if (truncated.length) toast('Разделы дочитаны не целиком (лимит ' + CH_ROW_LIMIT + ' строк): ' + truncated.join(', '), 'warn', 'Данные усечены', 12000);
     return !problems.length;
