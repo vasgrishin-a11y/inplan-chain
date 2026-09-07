@@ -1335,6 +1335,35 @@ const SEED_DATA = {
   ]
 };
 
+/* Образец строки rescapacity (витрина «Ресурсы и мощности»): в данных — по
+   строке на период. Используется в шаблоне и как справочник полей. */
+const RESCAPACITY_SAMPLE = {
+  periodid: 420260601,
+  restype: 1,
+  availbucketcapacity: 696,
+  capaexpansion: '',
+  mincapausage: '',
+  firmedreceiptreserve: '',
+  adjustedreceiptreserve: '',
+  netavailbucketcapacity: '',
+  periodtype: 4,
+  datefr: '01.06.2026',
+  res: 'Plant_44_RES_214',
+  loc: 'Plant_44',
+  calcavailablebucketcapacity: 720,
+  resequipnum: 1,
+  maintenance: 24,
+  overridebucketcapacity: 696,
+  oee: 100,
+  defaultbucketcapacity: 720,
+  nominalcapacity: '',
+  externalmaintenance: '',
+  calendarcapacity: 720,
+  capitalmaintenance: 0,
+  plannedmaintenance: 0
+};
+const RESCAPACITY_HEADERS = Object.keys(RESCAPACITY_SAMPLE);
+
 function loadSeed() {
   MODEL.sku = SEED_DATA.sku.map((r) => ({ ...r }));
   MODEL.res = SEED_DATA.res.map((r) => ({ ...r }));
@@ -1387,7 +1416,7 @@ const pickStr = (r, keys) => String(pickCol(r, keys)).trim();
    «prodsource» больше не может быть перехвачен алиасом другого раздела. */
 const SHEET_ALIASES = {
   sku: ['sku', 'skumatrix', 'номенклатура', 'материалы', 'продукты'],
-  res: ['res', 'resource', 'ресурс', 'ресурсы', 'мощности'],
+  res: ['res', 'rescapacity', 'resource', 'ресурс', 'ресурсы', 'мощности'],
   prodsource: ['prodsource', 'pds', 'рецепт', 'рецептуры', 'спецификация', 'спецификации'],
   tlane: ['tlane', 'tlaneprodmot', 'transport', 'плечи', 'транспорт', 'отношения']
 };
@@ -1420,36 +1449,72 @@ const MAPPERS = {
   }),
   res: (r) => {
     const res = pickStr(r, ['res', 'Ресурс: системный код', 'Ресурс', 'id']);
-    const id = res || pickStr(r, ['resequipnum', 'Ресурс: оборудование', 'Оборудование']);
+    const resequipnum = pickStr(r, ['resequipnum', 'Ресурс: оборудование', 'Оборудование']);
+    const id = res || resequipnum;
     const loc = pickStr(r, ['loc', 'Локация: системный код', 'Локация', 'Завод: системный код']);
+    const toN = (keys) => toNum(pickCol(r, keys), null);
     /* Классическая таблица res против rescapacity: если в данных есть хотя бы
        один признак «полной» схемы — мощности оставляем как есть (может быть
        пусто), иначе применяем прежнее значение по умолчанию 24. */
-    const capLike = r.netavailbucketcapacity !== undefined || r.calcavailablebucketcapacity !== undefined ||
-      r.availbucketcapacity !== undefined || r.defaultbucketcapacity !== undefined ||
-      r.calendarcapacity !== undefined || r.periodid !== undefined || r.resequipnum !== undefined ||
-      r.oee !== undefined || r.currentmaintenancepctsum !== undefined || r.restype !== undefined;
-    /* Порядок: сначала «нетто» из rescapacity, затем прежняя цепочка
-       классических колонок (в т.ч. русские заголовки из книг). */
-    const capRaw = toNum(pickCol(r, ['netavailbucketcapacity', 'defaultbucketcapacity', 'ФРВ Номинальный', 'Доступная мощность (итог)', 'capacity', 'Мощность']), null);
+    const capLike = r.periodid !== undefined || r.periodtype !== undefined ||
+      r.restype !== undefined || r.resequipnum !== undefined ||
+      r.availbucketcapacity !== undefined || r.netavailbucketcapacity !== undefined ||
+      r.calcavailablebucketcapacity !== undefined || r.defaultbucketcapacity !== undefined ||
+      r.calendarcapacity !== undefined || r.overridebucketcapacity !== undefined ||
+      r.nominalcapacity !== undefined || r.capaexpansion !== undefined ||
+      r.mincapausage !== undefined || r.firmedreceiptreserve !== undefined ||
+      r.adjustedreceiptreserve !== undefined || r.externalmaintenance !== undefined ||
+      r.capitalmaintenance !== undefined || r.plannedmaintenance !== undefined ||
+      r.maintenance !== undefined || r.oee !== undefined ||
+      r.currentmaintenancepctsum !== undefined;
+    /* «Нетто» — итоговая доступная мощность строки rescapacity; если она не
+       заполнена, берём переопределённую/доступную/номинальную, затем прежнюю
+       цепочку классических колонок (в т.ч. русские заголовки из книг). */
+    const netAvail = toN(['netavailbucketcapacity']);
+    const capRaw = netAvail !== null
+      ? netAvail
+      : toN(['overridebucketcapacity', 'availbucketcapacity', 'defaultbucketcapacity',
+            'calcavailablebucketcapacity', 'ФРВ Номинальный', 'Доступная мощность (итог)',
+            'capacity', 'Мощность']);
     const capacity = capRaw !== null ? capRaw : (capLike ? null : 24);
     return {
       id,
-      equip: res ? pickStr(r, ['resequipnum', 'Ресурс: оборудование', 'Оборудование']) : '',
+      equip: resequipnum,
       loc,
       name: pickStr(r, ['name', 'Ресурс: наименование', 'Наименование ресурса']),
-      type: pickStr(r, ['restype', 'Вид ресурса: наименование', 'Тип Ресурса', 'type', 'Вид ресурса']),
       capuom: pickStr(r, ['capuom', 'ЕИ мощности', 'Ед. изм. мощности']) || 'H',
-      capacity,
-      calcavail: toNum(pickCol(r, ['calcavailablebucketcapacity']), null),
-      defaultcap: toNum(pickCol(r, ['defaultbucketcapacity']), null),
-      availcap: toNum(pickCol(r, ['availbucketcapacity']), null),
-      oee: toNum(pickCol(r, ['oee']), null),
-      maintpct: toNum(pickCol(r, ['currentmaintenancepctsum', 'currentmaintenancepct']), null),
-      calendar: toNum(pickCol(r, ['calendarcapacity']), null),
+
+      /* ── rescapacity: полная схема, по строке на период ── */
       periodid: pickStr(r, ['periodid']),
-      periodtype: pickStr(r, ['periodtype']),
+      periodtype: toN(['periodtype']),
       datefr: pickStr(r, ['datefr']),
+      restype: toN(['restype']),
+      resequipnum,
+      availbucketcapacity: toN(['availbucketcapacity']),
+      capaexpansion: toN(['capaexpansion']),
+      mincapausage: toN(['mincapausage']),
+      firmedreceiptreserve: toN(['firmedreceiptreserve']),
+      adjustedreceiptreserve: toN(['adjustedreceiptreserve']),
+      netavailbucketcapacity: toN(['netavailbucketcapacity']),
+      calcavailablebucketcapacity: toN(['calcavailablebucketcapacity']),
+      maintenance: toN(['maintenance']),
+      overridebucketcapacity: toN(['overridebucketcapacity']),
+      oee: toN(['oee']),
+      defaultbucketcapacity: toN(['defaultbucketcapacity']),
+      nominalcapacity: toN(['nominalcapacity']),
+      externalmaintenance: toN(['externalmaintenance']),
+      calendarcapacity: toN(['calendarcapacity']),
+      capitalmaintenance: toN(['capitalmaintenance']),
+      plannedmaintenance: toN(['plannedmaintenance']),
+
+      /* ── сводные/легаси-поля для аудита, графа и старых книг ── */
+      type: pickStr(r, ['restype', 'Вид ресурса: наименование', 'Тип Ресурса', 'type', 'Вид ресурса']),
+      capacity,
+      calcavail: toN(['calcavailablebucketcapacity']),
+      defaultcap: toN(['defaultbucketcapacity']),
+      availcap: toN(['availbucketcapacity']),
+      maintpct: toN(['currentmaintenancepctsum', 'currentmaintenancepct']),
+      calendar: toN(['calendarcapacity']),
       updated: pickStr(r, ['update_date_time'])
     };
   },
@@ -1479,16 +1544,18 @@ const REQUIRED = {
 /* Нормализация дат/периодов для сравнения строк rescapacity */
 const periodKey = (r) => String(r.datefr || r.periodid || '');
 
-/* rescapacity хранит по строке на период (periodid/periodtype/datefr).
-   Для графа и топологии ресурс должен быть один — берём строку последнего
-   актуального периода (самый поздний datefr, иначе самый поздний periodid).
-   Если признаков периода нет — строки остаются как есть. */
-function collapseResPeriods(rows) {
+/* rescapacity хранит по строке на период (periodid/periodtype/datefr) — это и
+   есть бизнес-ценность данных, поэтому в таблице «Ресурсы и мощности»
+   показываются ВСЕ периоды. Для аудита и топологии ресурс должен быть один —
+   из строк одного ресурса берём самую свежую (поздний datefr, иначе поздний
+   periodid). Если признаков периода нет — возвращаем строки как есть. */
+function latestResRows(rows) {
   if (!rows.length || !rows.every((r) => periodKey(r))) return rows;
   const byId = new Map();
   rows.forEach((r) => {
     const k = r.id;
-    if (!byId.has(k) || periodKey(r) > periodKey(byId.get(k))) byId.set(k, r);
+    const prev = byId.get(k);
+    if (!prev || periodKey(r) > periodKey(prev)) byId.set(k, r);
   });
   return Array.from(byId.values());
 }
@@ -1554,10 +1621,11 @@ async function importFiles(fileList) {
 
     // Загруженные разделы заменяют модель целиком; не загруженные — очищаются,
     // чтобы в модели не оставалось перемешанных демо-строк.
-    // rescapacity несёт строку на период — для дашборда оставляем строку
-    // последнего актуального периода (см. collapseResPeriods).
+    // rescapacity несёт бизнес-ценность по строке на период — в модели и в
+    // таблице «Ресурсы и мощности» оставляем все периоды (см. latestResRows:
+    // его использует только аудит/топология).
     MODEL.sku = merged.sku;
-    MODEL.res = collapseResPeriods(merged.res);
+    MODEL.res = merged.res;
     MODEL.prodsource = merged.prodsource;
     MODEL.tlane = merged.tlane;
 
@@ -1658,7 +1726,9 @@ function runModelAudit() {
   });
 
   // ── Ресурсы ──
-  MODEL.res.forEach((r) => {
+  // rescapacity хранит строку на период — аудит считаем по самой свежей
+  // строке каждого ресурса, чтобы не плодить одинаковые предупреждения.
+  latestResRows(MODEL.res).forEach((r) => {
     if (!r.loc) { push('warn', 'Ресурсы', r.id, 'У ресурса не указана локация — он не попадёт на схему', []); return; }
     const eff = r.capacity != null ? r.capacity
       : (r.calcavail != null ? r.calcavail
@@ -2616,7 +2686,8 @@ $('listPds').addEventListener('change', (e) => {
 
 /* Раздел «Ресурсы и мощности» умеет два набора колонок:
    · классический res (id/loc/name/type/capuom/capacity) — из книг и старых витрин;
-   · полная схема rescapacity (netavailbucketcapacity, oee, периоды, обслуживание).
+   · полная схема rescapacity — 23 колонки витрины, по строке на период
+     (periodid, резервы, нетто-мощность, обслуживание, OEE и т.д.).
    Набор выбирается автоматически по фактическим полям загруженных строк. */
 const RES_CLASSIC_COLS = [
   { k: 'id', t: 'Код ресурса', bold: true },
@@ -2627,22 +2698,37 @@ const RES_CLASSIC_COLS = [
   { k: 'capacity', t: 'Мощность/сут', num: true }
 ];
 const RES_CAPACITY_COLS = [
-  { k: 'id', t: 'Ресурс (res)', bold: true },
-  { k: 'equip', t: 'Оборудование', code: true },
-  { k: 'loc', t: 'Локация', link: true },
-  { k: 'type', t: 'Тип ресурса (restype)' },
-  { k: 'datefr', t: 'Период с', title: 'datefr — период строки (для графа берётся самый свежий)' },
-  { k: 'capacity', t: 'Мощность нетто', num: true, title: 'netavailbucketcapacity' },
-  { k: 'defaultcap', t: 'Номинал', num: true, title: 'defaultbucketcapacity' },
-  { k: 'calcavail', t: 'Расч. доступность', num: true, title: 'calcavailablebucketcapacity' },
-  { k: 'calendar', t: 'Календ. фонд', num: true, title: 'calendarcapacity' },
+  { k: 'periodid', t: 'Период (periodid)', code: true, title: 'Код периода: тип периода + дата начала' },
+  { k: 'restype', t: 'Тип ресурса (restype)', num: true },
+  { k: 'availbucketcapacity', t: 'Доступно, брутто (availbucketcapacity)', num: true, title: 'Корзина доступной мощности до резервирования' },
+  { k: 'capaexpansion', t: 'Расширение (capaexpansion)', num: true },
+  { k: 'mincapausage', t: 'Мин. загрузка (mincapausage)', num: true },
+  { k: 'firmedreceiptreserve', t: 'Резерв поступлений (firmedreceiptreserve)', num: true },
+  { k: 'adjustedreceiptreserve', t: 'Резерв, скоррект. (adjustedreceiptreserve)', num: true },
+  { k: 'netavailbucketcapacity', t: 'Доступно, нетто (netavailbucketcapacity)', num: true, title: 'Итоговая доступная мощность — бизнес-ценность строки rescapacity' },
+  { k: 'periodtype', t: 'Тип периода (periodtype)', num: true, title: 'Код типа периода (например, 4 — месяц)' },
+  { k: 'datefr', t: 'Дата с (datefr)', title: 'Начало периода, к которому относится строка' },
+  { k: 'id', t: 'Ресурс (res)', bold: true, title: 'res — системный код ресурса' },
+  { k: 'loc', t: 'Локация (loc)', link: true },
+  { k: 'calcavailablebucketcapacity', t: 'Расч. доступность (calcavailablebucketcapacity)', num: true },
+  { k: 'resequipnum', t: 'Оборудование (resequipnum)', code: true },
+  { k: 'maintenance', t: 'Обслуживание (maintenance)', num: true },
+  { k: 'overridebucketcapacity', t: 'Переопределение (overridebucketcapacity)', num: true },
   { k: 'oee', t: 'OEE', num: true },
-  { k: 'maintpct', t: 'Обслуж., %', num: true, title: 'currentmaintenancepctsum' },
-  { k: 'updated', t: 'Обновлено', title: 'update_date_time' }
+  { k: 'defaultbucketcapacity', t: 'Номинал (defaultbucketcapacity)', num: true },
+  { k: 'nominalcapacity', t: 'Паспортная мощность (nominalcapacity)', num: true },
+  { k: 'externalmaintenance', t: 'Внешнее обслуживание (externalmaintenance)', num: true },
+  { k: 'calendarcapacity', t: 'Календарный фонд (calendarcapacity)', num: true },
+  { k: 'capitalmaintenance', t: 'Кап. обслуживание (capitalmaintenance)', num: true },
+  { k: 'plannedmaintenance', t: 'План. обслуживание (plannedmaintenance)', num: true }
 ];
 const resUsesCapacity = (rows) => rows.length > 0 && rows.some((r) =>
-  r.oee != null || r.calcavail != null || r.defaultcap != null || r.availcap != null ||
-  r.calendar != null || r.maintpct != null || r.periodtype || r.datefr);
+  r.periodid || r.periodtype != null || r.restype != null || r.resequipnum ||
+  r.netavailbucketcapacity != null || r.availbucketcapacity != null ||
+  r.calcavailablebucketcapacity != null || r.defaultbucketcapacity != null ||
+  r.calendarcapacity != null || r.overridebucketcapacity != null ||
+  r.nominalcapacity != null || r.maintenance != null ||
+  r.oee != null || r.maintpct != null || r.datefr);
 const resColsFor = (rows) => (resUsesCapacity(rows) ? RES_CAPACITY_COLS : RES_CLASSIC_COLS);
 
 /* Колонки активной вкладки: у «res» это функция от данных, у остальных — массив */
@@ -2829,7 +2915,8 @@ function switchMode(mode) {
 
 const SHEET_COLS = {
   sku: ['item', 'loc', 'res', 'minlotsize', 'maxlotsize'],
-  res: RES_CLASSIC_COLS.map((c) => c.k),
+  // res не фиксируем: колонки для экспорта берутся динамически (resColsFor)
+  // — классическая res или полная витрина rescapacity с 23 полями.
   prodsource: ['prodsource', 'item', 'loc', 'prodver', 'prio', 'outputqty'],
   tlane: ['item', 'locfr', 'locto', 'mot', 'leadtime']
 };
@@ -2914,15 +3001,16 @@ function downloadTemplate() {
   const wb = XLSX.utils.book_new();
   const mk = (name, header, sample) => XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([header].concat(sample)), name);
   mk('sku', ['item', 'loc', 'res', 'minlotsize', 'maxlotsize'], SEED_DATA.sku.map((r) => [r.item, r.loc, r.res, r.minlotsize, r.maxlotsize]));
-  mk('res', ['id', 'loc', 'name', 'type', 'capuom', 'capacity'], SEED_DATA.res.map((r) => [r.id, r.loc, r.name, r.type, r.capuom, r.capacity]));
+  mk('res', RESCAPACITY_HEADERS, [RESCAPACITY_HEADERS.map((k) => RESCAPACITY_SAMPLE[k])]);
   mk('prodsource', ['prodsource', 'item', 'loc', 'prodver', 'prio', 'outputqty'], SEED_DATA.prodsource.map((r) => [r.prodsource, r.item, r.loc, r.prodver, r.prio, r.outputqty]));
   mk('tlane', ['item', 'locfr', 'locto', 'mot', 'leadtime'], SEED_DATA.tlane.map((r) => [r.item, r.locfr, r.locto, r.mot, r.leadtime]));
   mk('README', ['Лист', 'Назначение', 'Обязательные колонки'], [
     ['sku', 'Справочник «продукт × локация»', 'item, loc'],
-    ['res', 'Ресурсы и мощности', 'id (loc — желательно)'],
+    ['res', 'Ресурсы и мощности — витрина rescapacity, по строке на период', 'res (loc, periodid, datefr — желательно)'],
     ['prodsource', 'Рецептуры / источники производства', 'item, loc'],
     ['tlane', 'Транспортные плечи', 'locfr, locto'],
-    ['', 'Русские заголовки тоже распознаются', 'напр. «Локация: системный код»']
+    ['', 'Русские заголовки тоже распознаются', 'напр. «Локация: системный код»'],
+    ['', 'Классическая таблица res (id/name/type/capuom/capacity)', 'тоже поддерживается и определяется автоматически']
   ]);
   XLSX.writeFile(wb, 'inplan-template.xlsx');
   toast('Заполните листы и загрузите книгу обратно', 'ok', 'Шаблон скачан');
@@ -3475,7 +3563,8 @@ async function chImportModel() {
     }
 
     MODEL.sku = merged.sku;
-    MODEL.res = collapseResPeriods(merged.res);
+    // rescapacity несёт строку на период — храним и показываем все периоды.
+    MODEL.res = merged.res;
     MODEL.prodsource = merged.prodsource;
     MODEL.tlane = merged.tlane;
 
@@ -3497,7 +3586,10 @@ async function chImportModel() {
       .join(' · ');
     toast((stat || 'таблицы пусты'), stat ? 'ok' : 'warn', 'Загружено из ClickHouse · ' + CH.db);
     if (!CH.tables.sku) toast('Таблица SKU не выбрана — раздел достроен из плеч и рецептур (помечен тегом «авто»)', 'info', 'Авто-достройка', 7000);
-    if (CH.tables.res && resUsesCapacity(MODEL.res)) toast('Раздел построен из rescapacity: на ресурс показана строка последнего периода (' + MODEL.res.length + ' ресурсов)', 'info', 'Ресурсы и мощности', 7000);
+    if (CH.tables.res && resUsesCapacity(MODEL.res)) {
+      const resCount = new Set(MODEL.res.map((r) => r.id)).size;
+      toast('Раздел построен из rescapacity: показаны все периоды — строк: ' + MODEL.res.length + ', ресурсов: ' + resCount, 'info', 'Ресурсы и мощности', 7000);
+    }
     if (problems.length) toast(problems.join('\n'), 'err', 'Часть разделов не загрузилась', 12000);
     if (truncated.length) toast('Разделы дочитаны не целиком (лимит ' + CH_ROW_LIMIT + ' строк): ' + truncated.join(', '), 'warn', 'Данные усечены', 12000);
     return !problems.length;
