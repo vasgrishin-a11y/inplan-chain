@@ -793,13 +793,6 @@ body.dragging { cursor: row-resize; }
 
 /* Пункты меню синхронизации длиннее экспортных: заголовок в одну строку,
    пояснение — отдельной строкой под ним, а не колонкой справа. */
-#popSyncWrap .menu-pop { min-width: 292px; }
-#popSyncWrap .menu-pop button {
-  display: block;
-  line-height: 17px;
-}
-#popSyncWrap .menu-pop .mi-sub { margin-top: 1px; }
-
 /* ── Прямое подключение к ClickHouse ── */
 .src-btn .src-lbl { max-width: 170px; overflow: hidden; text-overflow: ellipsis; }
 .dlg-overlay {
@@ -1031,6 +1024,16 @@ td.cell-link:hover { color: var(--scp-accent); }
     </div>
   </div>
 
+  <!-- Общий фильтр по виду транспорта -->
+  <div class="pop-wrap" id="popMotWrap">
+    <button class="fchip-btn" id="bMotPop" aria-haspopup="true" aria-expanded="false"><span id="lblCurMot">Вид транспорта: Все</span> <span class="badge hide" id="badgeMot">0</span> ▾</button>
+    <div class="pop-menu" role="group" aria-label="Фильтр по виду транспорта">
+      <div class="pop-hdr"><span>Виды транспорта (mot)</span><div><button type="button" class="lnk" id="btnMotAll">Все</button> · <button type="button" class="lnk" id="btnMotClr">Сброс</button></div></div>
+      <input type="text" class="pop-q" id="qMot" placeholder="Поиск вида транспорта..." aria-label="Поиск по видам транспорта">
+      <div class="pop-list" id="listMot"></div>
+    </div>
+  </div>
+
   <button class="btn-clr-flt" id="bResetAllFilters" disabled>Сбросить фильтры</button>
 
   <div class="hdr-right">
@@ -1060,18 +1063,6 @@ td.cell-link:hover { color: var(--scp-accent); }
       </div>
     </div>
 
-    <div class="pop-wrap" id="popSyncWrap">
-      <button class="src-btn" id="bSync" aria-haspopup="true" aria-expanded="false" title="Источник данных и синхронизация с сервером">
-        <span class="src-dot" aria-hidden="true"></span><span class="src-lbl" id="syncLbl">Локально</span> ▾
-      </button>
-      <div class="menu-pop" role="menu" aria-label="Синхронизация">
-        <button type="button" id="miSyncPush" role="menuitem">📤 Отправить модель на сервер<span class="mi-sub">Создаст новую ревизию, ничего не перезапишет</span></button>
-        <button type="button" id="miSyncPull" role="menuitem">📥 Забрать последнюю с сервера<span class="mi-sub">Заменит текущие данные в браузере</span></button>
-        <hr>
-        <button type="button" id="miSyncAuto" role="menuitem">🔁 Автоотправка после импорта<span class="mi-sub" id="syncAutoSub">Выключена</span></button>
-        <button type="button" id="miSyncCheck" role="menuitem">📡 Проверить соединение<span class="mi-sub" id="syncCheckSub">Сервер не найден — работаем локально</span></button>
-      </div>
-    </div>
     <div class="pop-wrap" id="popChWrap">
       <button class="src-btn" id="bCh" aria-haspopup="true" aria-expanded="false" title="Данные из ClickHouse: подключиться и выбрать версию (проект)">
         <span class="src-dot" aria-hidden="true"></span><span class="src-lbl" id="chLbl">⚡ ClickHouse</span> ▾
@@ -1375,7 +1366,7 @@ function loadSeed() {
 
 /* Set вместо массива: проверка принадлежности O(1) вместо O(n)
    в циклах отрисовки — на десятках тысяч строк это решающе. */
-const FILTERS = { items: new Set(), pds: new Set(), nodes: new Set() };
+const FILTERS = { items: new Set(), pds: new Set(), nodes: new Set(), mots: new Set() };
 
 let FOCUS_NODE_ID = null;
 let VIEW_MODE = 'graph';
@@ -1643,7 +1634,6 @@ async function importFiles(fileList) {
     toast(stat, 'ok', 'Данные загружены');
     if (problems.length) toast(problems.join(' · '), 'warn', 'Часть файлов пропущена', 9000);
     // Автоотправка: только если она включена и сервер действительно на связи.
-    if (SYNC.autoPush && SYNC.online) pushModel(true);
   } finally {
     setBusy(false);
   }
@@ -1835,6 +1825,16 @@ function getFilteredDataset() {
     sku = sku.filter((s) => pdsItems.has(s.item));
   }
 
+  if (FILTERS.mots.size) {
+    tlane = tlane.filter((t) => FILTERS.mots.has(t.mot));
+    // После фильтра mot не оставляем на графике узлы и строки, не входящие
+    // ни в одну из отфильтрованных цепочек.
+    const motLocs = new Set(tlane.flatMap((t) => [t.locfr, t.locto]));
+    pds = pds.filter((p) => motLocs.has(p.loc));
+    sku = sku.filter((x) => motLocs.has(x.loc));
+    res = res.filter((r) => motLocs.has(r.loc));
+  }
+
   if (FILTERS.nodes.size) {
     tlane = tlane.filter((t) => FILTERS.nodes.has(t.locfr) || FILTERS.nodes.has(t.locto));
     const activeLocs = new Set(tlane.flatMap((t) => [t.locfr, t.locto]));
@@ -1844,6 +1844,24 @@ function getFilteredDataset() {
     res = res.filter((r) => activeLocs.has(r.loc));
   }
 
+  // Фокус на узле превращается в фильтр цепочки для нижних таблиц:
+  // оставляем весь связный upstream/downstream подграф, а не только сам узел.
+  if (FOCUS_NODE_ID) {
+    const adj = new Map();
+    const link = (a, b) => { if (!adj.has(a)) adj.set(a, new Set()); adj.get(a).add(b); };
+    tlane.forEach((t) => { link(t.locfr, t.locto); link(t.locto, t.locfr); });
+    const chainLocs = new Set([FOCUS_NODE_ID]);
+    const queue = [FOCUS_NODE_ID];
+    while (queue.length) {
+      const loc = queue.shift();
+      (adj.get(loc) || []).forEach((next) => { if (!chainLocs.has(next)) { chainLocs.add(next); queue.push(next); } });
+    }
+    tlane = tlane.filter((t) => chainLocs.has(t.locfr) && chainLocs.has(t.locto));
+    pds = pds.filter((p) => chainLocs.has(p.loc));
+    sku = sku.filter((x) => chainLocs.has(x.loc));
+    res = res.filter((r) => chainLocs.has(r.loc));
+  }
+
   return { tlane, pds, sku, res };
 }
 
@@ -1851,6 +1869,7 @@ function resetFilters() {
   FILTERS.items.clear();
   FILTERS.pds.clear();
   FILTERS.nodes.clear();
+  FILTERS.mots.clear();
   FOCUS_NODE_ID = null;
 }
 
@@ -2601,6 +2620,8 @@ $('sbTree').addEventListener('change', (e) => {
   refreshUI();
 });
 
+const getAllMots = () => [...new Set(MODEL.tlane.map((t) => t.mot))].filter(Boolean).sort((a, b) => a.localeCompare(b, 'ru'));
+
 const getAllItemsUniverse = () => [...new Set([
   ...MODEL.sku.map((s) => s.item),
   ...MODEL.tlane.map((t) => t.item),
@@ -2657,7 +2678,21 @@ function renderFilterPills() {
     : (FILTERS.pds.size === 1 ? (firstPds.length > 14 ? firstPds.slice(0, 13) + '…' : firstPds) : 'Спецификации (' + FILTERS.pds.size + ')');
   $('bPdsPop').classList.toggle('on', FILTERS.pds.size > 0);
 
-  $('bResetAllFilters').disabled = !(FILTERS.items.size || FILTERS.pds.size || FILTERS.nodes.size || FOCUS_NODE_ID);
+  // ── Виды транспорта (mot) ──
+  const allMots = [...new Set(MODEL.tlane.map((t) => t.mot))].filter(Boolean).sort((a, b) => a.localeCompare(b, 'ru'));
+  const qM = ($('qMot').value || '').trim().toLowerCase();
+  const mRows = allMots.filter((m) => !qM || m.toLowerCase().includes(qM));
+  $('listMot').innerHTML = mRows.map((m) => {
+    const on = FILTERS.mots.has(m);
+    return '<label class="pop-item' + (on ? ' on' : '') + '"><input type="checkbox" data-mot="' + esc(m) + '"' + (on ? ' checked' : '') + '><span title="' + esc(m) + '">' + esc(m) + '</span></label>';
+  }).join('') || '<div style="padding:8px;color:var(--scp-text-3)">Не найдено</div>';
+  const bM = $('badgeMot');
+  bM.textContent = FILTERS.mots.size;
+  bM.classList.toggle('hide', !FILTERS.mots.size);
+  $('lblCurMot').textContent = FILTERS.mots.size === 0 ? 'Вид транспорта: Все' : (FILTERS.mots.size === 1 ? [...FILTERS.mots][0] : 'Виды транспорта (' + FILTERS.mots.size + ')');
+  $('bMotPop').classList.toggle('on', FILTERS.mots.size > 0);
+
+  $('bResetAllFilters').disabled = !(FILTERS.items.size || FILTERS.pds.size || FILTERS.nodes.size || FILTERS.mots.size || FOCUS_NODE_ID);
 }
 
 $('listItems').addEventListener('change', (e) => {
@@ -3083,182 +3118,6 @@ function restoreSession() {
   return { restored, mode: ui.mode };
 }
 
-/* ═══════════════ 14b. СИНХРОНИЗАЦИЯ С СЕРВЕРОМ (опционально) ═══════════════
-
-   Сервер — дополнительная возможность, а не обязательное условие. Дашборд
-   открывается двойным кликом по файлу и работает на localStorage; если рядом
-   поднят server/index.js, в шапке загорается зелёный индикатор и появляются
-   отправка/получение модели.
-
-   Ключевые предосторожности:
-   · на file:// сетевой слой вообще не запускается — иначе браузер выдаёт
-     невнятную ошибку CORS на каждый запрос;
-   · у всех запросов есть таймаут, поэтому «сервер не отвечает» никогда
-     не превращается в вечно висящий интерфейс;
-   · сервер версионирует, а не перезаписывает: каждая отправка — новая
-     ревизия, предыдущая остаётся доступной по номеру.
-   ═══════════════════════════════════════════════════════════════════ */
-
-const LS_SYNC = 'inplan_sync_v1';
-const SYNC_TIMEOUT_MS = 6000;
-const IS_FILE_PROTOCOL = location.protocol === 'file:';
-
-const SYNC = {
-  online: false,
-  checked: false,
-  autoPush: false,
-  lastRevision: null,
-  base: ''
-};
-
-try {
-  const saved = JSON.parse(localStorage.getItem(LS_SYNC) || '{}');
-  SYNC.autoPush = saved.autoPush === true;
-} catch (e) { void e; }
-
-const persistSync = () => {
-  try { localStorage.setItem(LS_SYNC, JSON.stringify({ autoPush: SYNC.autoPush })); } catch (e) { void e; }
-};
-
-/* fetch с таймаутом: AbortController гарантирует, что зависший сокет
-   не оставит кнопку в состоянии «Отправка...» навсегда. */
-async function apiFetch(path, options = {}) {
-  if (IS_FILE_PROTOCOL) throw new Error('страница открыта как файл — сеть недоступна');
-  const ctrl = new AbortController();
-  const timer = setTimeout(() => ctrl.abort(), options.timeout || SYNC_TIMEOUT_MS);
-  try {
-    const res = await fetch(SYNC.base + path, { ...options, signal: ctrl.signal });
-    let body = null;
-    try { body = await res.json(); } catch (e) { void e; }
-    if (!res.ok) throw new Error((body && body.error) || ('сервер ответил ' + res.status));
-    return body;
-  } catch (err) {
-    if (err && err.name === 'AbortError') throw new Error('сервер не ответил за ' + Math.round((options.timeout || SYNC_TIMEOUT_MS) / 1000) + ' с');
-    throw err;
-  } finally {
-    clearTimeout(timer);
-  }
-}
-
-function renderSyncState(state, text) {
-  const btn = $('bSync');
-  if (!btn) return;
-  btn.classList.remove('online', 'busy', 'err');
-  if (state) btn.classList.add(state);
-  $('syncLbl').textContent = text;
-  $('syncAutoSub').textContent = SYNC.autoPush ? 'Включена' : 'Выключена';
-
-  const disabled = !SYNC.online;
-  $('miSyncPush').disabled = disabled;
-  $('miSyncPull').disabled = disabled;
-  $('miSyncAuto').disabled = disabled;
-}
-
-function describeRevision(info) {
-  if (!info) return 'ревизий пока нет';
-  const when = new Date(info.savedAt || Date.now()).toLocaleString('ru-RU');
-  return 'ревизия ' + info.id + ' от ' + when;
-}
-
-/* Проверка соединения. Тихая при автостарте, с тостами — по кнопке. */
-async function checkServer(loud) {
-  if (IS_FILE_PROTOCOL) {
-    SYNC.online = false;
-    SYNC.checked = true;
-    renderSyncState('', 'Локально');
-    $('syncCheckSub').textContent = 'Файл открыт напрямую — сервер недоступен';
-    if (loud) toast('Дашборд открыт как локальный файл. Чтобы включить синхронизацию, откройте его через server/index.js.', 'info', 'Локальный режим', 8000);
-    return false;
-  }
-  renderSyncState('busy', 'Проверка...');
-  try {
-    const health = await apiFetch('/api/health', { timeout: 3500 });
-    SYNC.online = health && health.ok === true;
-    SYNC.checked = true;
-    if (SYNC.online) {
-      renderSyncState('online', 'Сервер');
-      $('syncCheckSub').textContent = 'На связи · ревизий: ' + (health.revisions || 0);
-      if (loud) toast('Ревизий на сервере: ' + (health.revisions || 0), 'ok', 'Сервер на связи');
-    } else {
-      renderSyncState('', 'Локально');
-      $('syncCheckSub').textContent = 'Ответ сервера не распознан';
-    }
-    return SYNC.online;
-  } catch (err) {
-    SYNC.online = false;
-    SYNC.checked = true;
-    renderSyncState('', 'Локально');
-    $('syncCheckSub').textContent = 'Сервер не найден — работаем локально';
-    if (loud) toast(err.message + '. Данные остаются в браузере.', 'warn', 'Сервер недоступен', 7000);
-    return false;
-  }
-}
-
-/* Отправка создаёт НОВУЮ ревизию — прежнее состояние на сервере остаётся. */
-async function pushModel(silent) {
-  if (!SYNC.online) { if (!silent) toast('Сервер недоступен', 'warn'); return false; }
-  const rows = MODEL.sku.length + MODEL.res.length + MODEL.prodsource.length + MODEL.tlane.length;
-  if (!rows) { if (!silent) toast('Модель пуста — отправлять нечего', 'warn'); return false; }
-  renderSyncState('busy', 'Отправка...');
-  setBusy(true);
-  try {
-    const body = {
-      author: (navigator.userAgent.indexOf('Win') > -1 ? 'desktop' : 'user'),
-      note: silent ? 'автоотправка после импорта' : 'ручная отправка из дашборда',
-      model: { sku: MODEL.sku, res: MODEL.res, prodsource: MODEL.prodsource, tlane: MODEL.tlane }
-    };
-    const out = await apiFetch('/api/model', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body),
-      timeout: 30000
-    });
-    SYNC.lastRevision = out.revision;
-    renderSyncState('online', 'Сервер');
-    $('syncCheckSub').textContent = 'Последняя отправка: ' + describeRevision(out.revision);
-    toast('Создана ' + describeRevision(out.revision) + ' · строк: ' + out.revision.rows, 'ok', 'Отправлено на сервер');
-    return true;
-  } catch (err) {
-    SYNC.online = false;
-    renderSyncState('err', 'Ошибка');
-    toast(err.message + '. Данные сохранены локально.', 'err', 'Отправка не удалась', 8000);
-    return false;
-  } finally {
-    setBusy(false);
-  }
-}
-
-async function pullModel() {
-  if (!SYNC.online) { toast('Сервер недоступен', 'warn'); return; }
-  renderSyncState('busy', 'Загрузка...');
-  setBusy(true);
-  try {
-    const out = await apiFetch('/api/model', { timeout: 30000 });
-    const m = out.model || {};
-    MODEL.sku = m.sku || []; MODEL.res = m.res || [];
-    MODEL.prodsource = m.prodsource || []; MODEL.tlane = m.tlane || [];
-    SYNC.lastRevision = out.revision;
-
-    deriveSkuFromLoadedData();
-    resetFilters();
-    resetGraphView();
-    runModelAudit();
-    persistModel();
-    refreshUI(true);
-    zoomToFit();
-
-    renderSyncState('online', 'Сервер');
-    $('syncCheckSub').textContent = 'Загружена ' + describeRevision(out.revision);
-    toast('Загружена ' + describeRevision(out.revision), 'ok', 'Данные с сервера');
-  } catch (err) {
-    SYNC.online = false;
-    renderSyncState('err', 'Ошибка');
-    toast(err.message, 'err', 'Не удалось получить данные', 8000);
-  } finally {
-    setBusy(false);
-  }
-}
-
 /* ═══════════════ 14c. ПРЯМОЕ ПОДКЛЮЧЕНИЕ К CLICKHOUSE (опционально) ═════
 
    Второй сетевой путь рядом с сервером синхронизации: дашборд ходит в
@@ -3659,23 +3518,11 @@ function togglePopup(wrapId, btnId) {
 }
 $('bItemPop').onclick = (e) => { e.stopPropagation(); togglePopup('popItemsWrap', 'bItemPop'); };
 $('bPdsPop').onclick = (e) => { e.stopPropagation(); togglePopup('popPdsWrap', 'bPdsPop'); };
+$('bMotPop').onclick = (e) => { e.stopPropagation(); togglePopup('popMotWrap', 'bMotPop'); };
 $('bExport').onclick = (e) => { e.stopPropagation(); togglePopup('popExportWrap', 'bExport'); };
-$('bSync').onclick = (e) => { e.stopPropagation(); togglePopup('popSyncWrap', 'bSync'); };
 document.addEventListener('click', closeAllPopups);
 document.querySelectorAll('.pop-menu').forEach((m) => m.addEventListener('click', (e) => e.stopPropagation()));
 $('popExportWrap').querySelector('.menu-pop').addEventListener('click', () => closeAllPopups());
-$('popSyncWrap').querySelector('.menu-pop').addEventListener('click', () => closeAllPopups());
-
-// Синхронизация
-$('miSyncPush').onclick = () => pushModel(false);
-$('miSyncPull').onclick = () => pullModel();
-$('miSyncCheck').onclick = () => checkServer(true);
-$('miSyncAuto').onclick = () => {
-  SYNC.autoPush = !SYNC.autoPush;
-  persistSync();
-  renderSyncState(SYNC.online ? 'online' : '', SYNC.online ? 'Сервер' : 'Локально');
-  toast(SYNC.autoPush ? 'После каждого импорта модель уйдёт на сервер новой ревизией' : 'Импорт больше не отправляется автоматически', 'info', 'Автоотправка ' + (SYNC.autoPush ? 'включена' : 'выключена'));
-};
 
 // Кнопки фильтров
 $('btnItemAll').onclick = () => {
@@ -3692,12 +3539,16 @@ $('btnPdsAll').onclick = () => {
   refreshUI();
 };
 $('btnPdsClr').onclick = () => { FILTERS.pds.clear(); refreshUI(); };
+$('btnMotAll').onclick = () => { getAllMots().forEach((m) => FILTERS.mots.add(m)); refreshUI(); };
+$('btnMotClr').onclick = () => { FILTERS.mots.clear(); refreshUI(); };
+$('listMot').addEventListener('change', (e) => { const m = e.target.dataset.mot; if (!m) return; if (FILTERS.mots.has(m)) FILTERS.mots.delete(m); else FILTERS.mots.add(m); refreshUI(); });
 $('btnNodesClr').onclick = () => { FILTERS.nodes.clear(); refreshUI(); };
 $('bResetAllFilters').onclick = () => { resetFilters(); refreshUI(); };
 $('bClearFocus').onclick = () => { FOCUS_NODE_ID = null; refreshUI(); };
 
 $('qItem').oninput = debounce(renderFilterPills, 120);
 $('qPds').oninput = debounce(renderFilterPills, 120);
+$('qMot').oninput = debounce(renderFilterPills, 120);
 $('sbSearchInput').oninput = debounce(renderSidebarNodes, 120);
 $('tblSearch').oninput = debounce((e) => { TABLE_QUERY = e.target.value.trim(); ROW_LIMIT = ROW_STEP; renderBottomTable(); }, 160);
 
@@ -3879,10 +3730,6 @@ document.addEventListener('keydown', (e) => {
   if (mode === 'matrix') switchMode('matrix'); else refreshUI(true);
   zoomToFit();
   if (restored) toast('Восстановлены данные предыдущей сессии', 'info', 'Сессия', 5000);
-  // Сервер опционален: проверяем тихо и только когда страница отдана по HTTP.
-  renderSyncState('', 'Локально');
-  if (!IS_FILE_PROTOCOL) checkServer(false);
-  else $('syncCheckSub').textContent = 'Файл открыт напрямую — сервер недоступен';
   // ClickHouse напрямую: рисуем чип и тихо переподключаемся, если настраивали.
   renderChChip();
   chAutoConnect();
