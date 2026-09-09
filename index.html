@@ -381,6 +381,23 @@ header {
   font: 400 12px 'Open Sans', sans-serif;
 }
 .sb-search input:focus { outline: none; border-color: var(--scp-accent); }
+/* Переключатель охвата фильтра узлов: 2×2 («Соседи» / «Цепочка» / «Поставщики» /
+   «Сбыт»). Сайдбар 250px, поэтому кнопки переносятся в две строки. */
+.sb-mode {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px;
+  margin: 8px 10px 0;
+}
+.sb-mode button {
+  flex: 1 1 calc(50% - 2px);
+  white-space: nowrap;
+  padding: 4px 6px;
+  font-size: 11px;
+}
+/* Пока ни один узел не выбран, переключатель приглушён: на выдачу он тогда
+   не влияет, но остаётся доступен (режим запоминается). */
+.sb-mode.dim { opacity: 0.45; }
 .sb-tree {
   flex: 1;
   overflow-y: auto;
@@ -1116,6 +1133,12 @@ td.cell-link:hover { color: var(--scp-accent); }
     <div class="sb-search">
       <input type="text" id="sbSearchInput" placeholder="Поиск узла... (/)" aria-label="Поиск узла сети">
     </div>
+    <div class="sb-mode seg-btn" id="sbNodeMode" role="group" aria-label="Охват фильтра узлов: что показывать при выборе узлов">
+      <button type="button" data-nmode="neighbors" aria-pressed="false" title="Только непосредственные партнёры выбранных узлов — один шаг вверх и вниз по потоку">Соседи</button>
+      <button type="button" data-nmode="chain" aria-pressed="true" title="Вся сквозная цепочка через выбранные узлы: все источники поставок ↑ и все направления сбыта ↓">Цепочка ↑↓</button>
+      <button type="button" data-nmode="upstream" aria-pressed="false" title="Только цепочка вверх по потоку от выбранных узлов: поставщики и их источники">Поставщики ↑</button>
+      <button type="button" data-nmode="downstream" aria-pressed="false" title="Только цепочка вниз по потоку от выбранных узлов: направления сбыта до конечных точек">Сбыт ↓</button>
+    </div>
     <div class="sb-tree" id="sbTree"></div>
   </aside>
 
@@ -1401,6 +1424,16 @@ function loadSeed() {
 /* Set вместо массива: проверка принадлежности O(1) вместо O(n)
    в циклах отрисовки — на десятках тысяч строк это решающе. */
 const FILTERS = { items: new Set(), pds: new Set(), nodes: new Set(), mots: new Set() };
+
+/* Охват фильтра узлов (переключатель в сайдбаре, см. #sbNodeMode):
+   'neighbors'  — только непосредственные партнёры (1 шаг вверх и вниз);
+   'chain'      — вся сквозная цепочка: все источники поставок ↑ и весь сбыт ↓;
+   'upstream'   — только цепочка вверх по потоку (поставщики и их источники);
+   'downstream' — только цепочка вниз по потоку (направления сбыта).
+   Режим — предпочтение вида: «Сбросить фильтры» его не трогает, и он
+   персистится в localStorage вместе с детализацией типов и направлением. */
+const NODE_FILTER_MODES = ['neighbors', 'chain', 'upstream', 'downstream'];
+let NODE_FILTER_MODE = 'chain';
 
 let FOCUS_NODE_ID = null;
 let VIEW_MODE = 'graph';
@@ -1870,6 +1903,46 @@ function detectCycles(outMap) {
 
 /* ═══════════════ 5. ФИЛЬТРАЦИЯ ═══════════════ */
 
+/* Охват фильтра узлов: какие локации считаются связанными с выбранными.
+   'neighbors' — прямые партнёры (плечи, где выбранный узел — конечная точка);
+   остальные режимы — направленный BFS по плечам: вверх (поставщики) — обход
+   по обратным рёбрам, вниз (сбыт) — по прямым. Несколько выбранных узлов
+   дают ОБЪЕДИНЕНИЕ их цепочек. Параллельные цепочки других узлов
+   (например, чужой завод → общий РЦ) в охват не попадают: двигаясь от узла
+   только «к себе» и «от себя», мы показываем именно его сквозные потоки.
+   Возвращает { tlane:отфильтрованные плечи, locs:активные локации }. */
+function computeNodeScope(tlane, selected, mode) {
+  if (mode === 'neighbors') {
+    const keep = tlane.filter((t) => selected.has(t.locfr) || selected.has(t.locto));
+    const locs = new Set(keep.flatMap((t) => [t.locfr, t.locto]));
+    selected.forEach((n) => locs.add(n));
+    return { tlane: keep, locs };
+  }
+
+  const out = new Map(); // locfr → [locto, ...]  (прямые рёбра)
+  const inn = new Map(); // locto → [locfr, ...]  (обратные рёбра)
+  const link = (m, a, b) => { if (!m.has(a)) m.set(a, []); m.get(a).push(b); };
+  tlane.forEach((t) => { link(out, t.locfr, t.locto); link(inn, t.locto, t.locfr); });
+
+  const walkDir = (adj) => {
+    const seen = new Set(selected);
+    const q = [...selected];
+    while (q.length) {
+      const cur = q.shift();
+      (adj.get(cur) || []).forEach((nx) => { if (!seen.has(nx)) { seen.add(nx); q.push(nx); } });
+    }
+    return seen;
+  };
+
+  const locs = new Set(selected);
+  if (mode === 'chain' || mode === 'upstream') walkDir(inn).forEach((l) => locs.add(l));
+  if (mode === 'chain' || mode === 'downstream') walkDir(out).forEach((l) => locs.add(l));
+
+  /* Плечи оставляем только ВНУТРИ охвата (оба конца в множестве) — иначе
+     от соседнего узла цепочки «просочились» бы чужие ветки. */
+  return { tlane: tlane.filter((t) => locs.has(t.locfr) && locs.has(t.locto)), locs };
+}
+
 function getFilteredDataset() {
   let tlane = MODEL.tlane;
   let pds = MODEL.prodsource;
@@ -1900,9 +1973,13 @@ function getFilteredDataset() {
   }
 
   if (FILTERS.nodes.size) {
-    tlane = tlane.filter((t) => FILTERS.nodes.has(t.locfr) || FILTERS.nodes.has(t.locto));
-    const activeLocs = new Set(tlane.flatMap((t) => [t.locfr, t.locto]));
-    FILTERS.nodes.forEach((n) => activeLocs.add(n));
+    /* Охват настраивается переключателем в сайдбаре (#sbNodeMode): «Соседи» —
+       старая логика 1 шага; «Цепочка ↑↓» / «Поставщики ↑» / «Сбыт ↓» —
+       направленный BFS. Цепочка строится по плечам, уже суженным фильтрами
+       продуктов/PDS/mot выше (последовательная логика фильтров). */
+    const scope = computeNodeScope(tlane, FILTERS.nodes, NODE_FILTER_MODE);
+    tlane = scope.tlane;
+    const activeLocs = scope.locs;
     pds = pds.filter((p) => activeLocs.has(p.loc));
     sku = sku.filter((s) => activeLocs.has(s.loc));
     res = res.filter((r) => activeLocs.has(r.loc));
@@ -2771,6 +2848,26 @@ function renderSidebarNodes() {
   treeEl.innerHTML = parts.join('') || '<div style="padding:16px;text-align:center;color:var(--scp-text-3)">Узлов не найдено</div>';
 }
 
+/* Переключатель охвата фильтра узлов: подсвечивает активный режим и
+   приглушает весь блок, пока ни один узел не выбран (фильтр узлов неактивен). */
+function renderNodeModeSwitch() {
+  const wrap = $('sbNodeMode');
+  if (!wrap) return;
+  wrap.querySelectorAll('button[data-nmode]').forEach((b) => {
+    const on = b.dataset.nmode === NODE_FILTER_MODE;
+    b.classList.toggle('on', on);
+    b.setAttribute('aria-pressed', String(on));
+  });
+  wrap.classList.toggle('dim', !FILTERS.nodes.size);
+}
+
+$('sbNodeMode').addEventListener('click', (e) => {
+  const b = e.target.closest('button[data-nmode]');
+  if (!b || b.dataset.nmode === NODE_FILTER_MODE) return;
+  NODE_FILTER_MODE = b.dataset.nmode;
+  refreshUI();
+});
+
 $('sbTree').addEventListener('click', (e) => {
   const t = e.target.closest('.sb-grp-title');
   if (!t) return;
@@ -3089,6 +3186,7 @@ $('bsBody').addEventListener('click', (e) => {
 function refreshUI(relayout) {
   buildGraphTopology(relayout);
   renderSidebarNodes();
+  renderNodeModeSwitch();
   renderFilterPills();
   renderBottomTable();
   if (VIEW_MODE === 'graph') drawGraph(); else renderMatrixView();
@@ -3281,6 +3379,7 @@ function persistUI() {
       tab: ACTIVE_TAB,
       typeGran: TYPE_GRANULARITY,
       dirRev: LAYOUT_REVERSE,
+      nodeMode: NODE_FILTER_MODE,
       sheetH: $('bottomSheet').style.height || '',
       sheetCollapsed: $('bottomSheet').classList.contains('collapsed'),
       sbMin: $('sidebar').classList.contains('min')
@@ -3325,9 +3424,11 @@ function restoreSession() {
   } catch (e) { void e; }
   if (!restored) loadSeed();
 
-  // Восстанавливаем выбранные пользователем режимы детализации и направления
+  // Восстанавливаем выбранные пользователем режимы детализации, направления
+  // и охвата фильтра узлов
   TYPE_GRANULARITY = ui.typeGran === 'detail' ? 'detail' : 'coarse';
   LAYOUT_REVERSE = ui.dirRev === true;
+  NODE_FILTER_MODE = NODE_FILTER_MODES.includes(ui.nodeMode) ? ui.nodeMode : 'chain';
 
   if (ui.tab && TABLE_DEFS[ui.tab]) {
     ACTIVE_TAB = ui.tab;
