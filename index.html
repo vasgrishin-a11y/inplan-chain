@@ -437,8 +437,12 @@ header {
 }
 .sb-item:hover { background: var(--scp-accent-bg); }
 .sb-item.on { background: var(--scp-accent-bg); font-weight: 600; color: var(--scp-accent); }
-.sb-item input { margin: 0; accent-color: var(--scp-accent); }
-.sb-item-icon { font-size: 12px; }
+.sb-item input { margin: 0; accent-color: var(--scp-accent); flex: none; }
+.sb-item-icon { font-size: 12px; flex: none; }
+.sb-itxt { display: flex; flex-direction: column; line-height: 1.25; min-width: 0; flex: 1; }
+.sb-iid { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sb-ityp { font-size: 9.5px; color: var(--scp-text-3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sb-item.on .sb-ityp { color: var(--scp-accent-sub); }
 
 /* ЦЕНТРАЛЬНАЯ ОБЛАСТЬ (ХОЛСТ ГРАФА ИЛИ МАТРИЦА) */
 .content-area {
@@ -498,6 +502,17 @@ header {
   gap: 4px;
 }
 .graph-focus-pill button { border: 0; background: transparent; cursor: pointer; color: var(--scp-accent); font-weight: 700; padding: 0 2px; }
+
+/* Переключатели направления и детализации типов в тулбаре графа */
+.graph-toolbar .gb-ctl { margin-left: auto; display: flex; align-items: center; gap: 6px; }
+.gb-chip {
+  display: inline-flex; align-items: center; gap: 5px; height: 26px; padding: 0 9px;
+  border: 1px solid var(--scp-line-2); background: var(--scp-surface); border-radius: 13px;
+  color: var(--scp-text-2); font: 600 11px 'Open Sans', sans-serif; cursor: pointer;
+  white-space: nowrap; user-select: none;
+}
+.gb-chip:hover { border-color: var(--scp-accent); color: var(--scp-accent); }
+.gb-chip.on { background: var(--scp-accent-bg); border-color: var(--scp-accent); color: var(--scp-accent); }
 
 .graph-canvas-wrap {
   flex: 1;
@@ -1113,6 +1128,10 @@ td.cell-link:hover { color: var(--scp-accent); }
       <div id="focusPillWrap" style="display:none">
         <span class="graph-focus-pill"><span id="focusPillText">Фокус</span> <button id="bClearFocus" title="Сбросить фокус (Esc)" aria-label="Сбросить фокус">✕</button></span>
       </div>
+      <div class="gb-ctl" role="group" aria-label="Направление и детализация схемы">
+        <button type="button" class="gb-chip" id="bDir" aria-pressed="false" title="Направление раскладки">↔ по потоку</button>
+        <button type="button" class="gb-chip" id="bGran" aria-pressed="false" title="Детализация типов узлов">типы: укрупнённо</button>
+      </div>
     </div>
 
     <!-- Область холста -->
@@ -1213,6 +1232,8 @@ td.cell-link:hover { color: var(--scp-accent); }
         <select id="chTblPds"></select>
         <label for="chTblTlane">Таблица tlane</label>
         <select id="chTblTlane"></select>
+        <label for="chTblLoc">Локации: loc · опц.</label>
+        <select id="chTblLoc"></select>
       </div>
       <div class="dlg-row">
         <button type="button" class="btn-ghost" id="chCheckMap">🧭 Проверить колонки</button>
@@ -1296,7 +1317,7 @@ const setBusy = (on) => $('busyBar').classList.toggle('show', on);
 
 /* ═══════════════ 1. МОДЕЛЬ ДАННЫХ ═══════════════ */
 
-const MODEL = { sku: [], res: [], prodsource: [], tlane: [], audit: [] };
+const MODEL = { sku: [], res: [], prodsource: [], tlane: [], loc: [], audit: [] };
 
 const SEED_DATA = {
   sku: [
@@ -1323,6 +1344,17 @@ const SEED_DATA = {
     { item: 'FPSO_1', locfr: 'Port_4', locto: 'Port_28', mot: 'PORTHANDL', leadtime: 1 },
     { item: 'FPSO_1', locfr: 'Port_28', locto: 'Dispatch_EX_7', mot: 'SHIPCONTAN', leadtime: 8 },
     { item: 'FPSO_1', locfr: 'Dispatch_EX_7', locto: 'Sale_EX_2', mot: 'LASTMILE', leadtime: 1 }
+  ],
+  /* Демо-справочник локаций. В реальных данных он грузится как раздел loc
+     (лист XLSX или таблица ClickHouse); loctype — числовой код типа локации. */
+  loc: [
+    { loc: 'Vendor_20', loctype: 11 },
+    { loc: 'Plant_31', loctype: 21 },
+    { loc: 'Plant_35', loctype: 21 },
+    { loc: 'Port_4', loctype: 13 },
+    { loc: 'Port_28', loctype: 13 },
+    { loc: 'Dispatch_EX_7', loctype: 41 },
+    { loc: 'Sale_EX_2', loctype: 52 }
   ]
 };
 
@@ -1360,6 +1392,8 @@ function loadSeed() {
   MODEL.res = SEED_DATA.res.map((r) => ({ ...r }));
   MODEL.prodsource = SEED_DATA.prodsource.map((r) => ({ ...r }));
   MODEL.tlane = SEED_DATA.tlane.map((r) => ({ ...r }));
+  MODEL.loc = SEED_DATA.loc.map((r) => ({ ...r }));
+  rebuildLocIndex();
 }
 
 /* ═══════════════ 2. СОСТОЯНИЕ ═══════════════ */
@@ -1372,6 +1406,12 @@ let FOCUS_NODE_ID = null;
 let VIEW_MODE = 'graph';
 let ACTIVE_TAB = 'sku';
 let WARN_HIGHLIGHT = false;
+/* Детализация типа узла: 'coarse' (укрупнённо по этапам + уточнение loctype,
+   режим по умолчанию) или 'detail' (каждый loctype своим цветом/группой). */
+let TYPE_GRANULARITY = 'coarse';
+/* Направление раскладки: false — по потоку (поставщики слева → сбыт справа);
+   true — реверс, от сбыта (слева) к поставщикам сырья. */
+let LAYOUT_REVERSE = false;
 let TABLE_QUERY = '';
 const SORT_STATE = {};
 let ROW_LIMIT = 400;
@@ -1409,7 +1449,8 @@ const SHEET_ALIASES = {
   sku: ['sku', 'skumatrix', 'номенклатура', 'материалы', 'продукты'],
   res: ['res', 'rescapacity', 'resource', 'ресурс', 'ресурсы', 'мощности'],
   prodsource: ['prodsource', 'pds', 'рецепт', 'рецептуры', 'спецификация', 'спецификации'],
-  tlane: ['tlane', 'tlaneprodmot', 'transport', 'плечи', 'транспорт', 'отношения']
+  tlane: ['tlane', 'tlaneprodmot', 'transport', 'плечи', 'транспорт', 'отношения'],
+  loc: ['loc', 'locations', 'локации', 'локация', 'локации и типы', 'справочник локаций']
 };
 
 function matchSheets(wb) {
@@ -1523,13 +1564,24 @@ const MAPPERS = {
     locto: pickStr(r, ['locto', 'Локация куда', 'Куда']),
     mot: pickStr(r, ['mot', 'Вид транспорта', 'Транспорт']) || 'TRUCK',
     leadtime: orDefault(toNum(pickCol(r, ['tleadtime', 'leadtime', 'Лидтайм'])), 1)
+  }),
+  /* loc — справочник локаций: «код локации → loctype (числовой код типа)».
+     loctype интерпретируется словарём LOCTYPE_MAP (см. раздел про тип узла). */
+  loc: (r) => ({
+    loc: pickStr(r, ['loc', 'Локация: системный код', 'Локация', 'Код локации']),
+    loctype: toNum(pickCol(r, ['loctype', 'Тип локации', 'Код типа']), null),
+    locdescr: pickStr(r, ['locdescr', 'Наименование', 'Описание']),
+    locgroup: pickStr(r, ['locgroup', 'Группа']),
+    locregion: pickStr(r, ['locregion', 'Регион']),
+    loccountry: pickStr(r, ['loccountry', 'Страна'])
   })
 };
 const REQUIRED = {
   sku: (x) => x.item && x.loc,
   res: (x) => x.id,
   prodsource: (x) => x.item && x.loc,
-  tlane: (x) => x.locfr && x.locto
+  tlane: (x) => x.locfr && x.locto,
+  loc: (x) => x.loc
 };
 
 /* Нормализация дат/периодов для сравнения строк rescapacity */
@@ -1579,7 +1631,7 @@ async function importFiles(fileList) {
   const files = Array.from(fileList);
   if (!files.length) return;
   setBusy(true);
-  const merged = { sku: [], res: [], prodsource: [], tlane: [] };
+  const merged = { sku: [], res: [], prodsource: [], tlane: [], loc: [] };
   const seenKinds = new Set();
   const problems = [];
 
@@ -1619,6 +1671,8 @@ async function importFiles(fileList) {
     MODEL.res = merged.res;
     MODEL.prodsource = merged.prodsource;
     MODEL.tlane = merged.tlane;
+    MODEL.loc = merged.loc;
+    rebuildLocIndex();
 
     deriveSkuFromLoadedData();
     resetFilters();
@@ -1627,7 +1681,7 @@ async function importFiles(fileList) {
     persistModel();
     refreshUI(true);
 
-    const stat = ['sku', 'res', 'prodsource', 'tlane']
+    const stat = ['sku', 'res', 'prodsource', 'tlane', 'loc']
       .filter((k) => seenKinds.has(k))
       .map((k) => k + ': ' + merged[k].length)
       .join(' · ');
@@ -1748,10 +1802,20 @@ function runModelAudit() {
     const hasIn = inMap.has(loc);
     const hasOut = outMap.has(loc);
     if (!hasIn && !hasOut) push('info', 'Топология', loc, 'Изолированный узел: нет ни входящих, ни исходящих плеч', [loc]);
-    else if (hasIn && !hasOut && getNodeCategory(loc).cat !== 'Сбыт') push('info', 'Топология', loc, 'Тупик: в узел завозят, но вывоза нет (проверьте, конечная ли это точка)', [loc]);
+    else if (hasIn && !hasOut && !isInStage(loc, 's5')) push('info', 'Топология', loc, 'Тупик: в узел завозят, но вывоза нет (проверьте, конечная ли это точка)', [loc]);
   });
 
   detectCycles(outMap).forEach((cyc) => push('warn', 'Топология', cyc.join(' → '), 'Обнаружен цикл в цепочке поставок — планировщик может зациклиться', cyc));
+
+  // ── Справочник loc: замечания о локациях, которых нет в справочнике типов.
+  // Если справочник loc не загружен (LOC_INDEX пуст) — замечаний не плодим:
+  // тип просто определяется по названию, как раньше.
+  if (LOC_INDEX.size) {
+    allLocs.forEach((loc) => {
+      if (!loc) return;
+      if (!LOC_INDEX.has(loc)) push('info', 'Справочник', loc, 'Локации нет в справочнике loc — тип узла определён по названию, проверьте loctype', [loc]);
+    });
+  }
 
   const order = { err: 0, warn: 1, info: 2 };
   A.sort((a, b) => order[a.type] - order[b.type] || a.cat.localeCompare(b.cat, 'ru'));
@@ -1881,19 +1945,113 @@ const getRelatedItemsSet = (pds) => new Set(MODEL.prodsource.filter((p) => pds.h
 const GRAPH = { nodes: [], edges: [], zoom: 1, panX: 40, panY: 40 };
 const PINNED = new Map(); // узлы, которые пользователь передвинул вручную
 
-const CATEGORIES = [
-  { cat: 'Поставщики', icon: '📦', color: '#ff9a3b', rank: 1, test: (l) => /^(VENDOR|SUPP|ПОСТАВЩ)/.test(l) },
-  { cat: 'Заводы', icon: '🏭', color: '#2d3f8f', rank: 2, test: (l) => /^(PLANT|FACT|ЗАВОД|ПРОИЗВ)/.test(l) },
-  { cat: 'РЦ/Склады', icon: '🏢', color: '#0d9488', rank: 3, test: (l) => /^(DISPATCH|DC|WH|РЦ|СКЛАД)/.test(l) },
-  { cat: 'Порты', icon: '⚓', color: '#3fa9c9', rank: 4, test: (l) => /^(PORT|ПОРТ)/.test(l) },
-  { cat: 'Сбыт', icon: '🛒', color: '#22bb55', rank: 5, test: (l) => /^(SALE|CUST|CLIENT|СБЫТ|КЛИЕНТ|ПОКУП)/.test(l) }
-];
-const OTHER_CAT = { cat: 'Прочие узлы', icon: '🏬', color: '#7c5cd6', rank: 3 };
+/* ═══ ТИП УЗЛА: справочник loc (loc.loctype) + фиксированный словарь loctypes ═══
+   Прежняя классификация угадывала тип по префиксу названия локации
+   (PLANT/PORT/VENDOR/...), из-за чего настоящие коды и кириллические имена
+   сваливались в «Прочие». Теперь источник истины — таблица loc (раздел модели,
+   грузится из XLSX или ClickHouse): поле loc.loctype даёт числовой код типа,
+   а словарь LOCTYPE_MAP (зашит в код — справочник видов локаций стабильный)
+   превращает код в бизнес-тип («41» → «Внешний склад»). Если строки в loc нет —
+   фолбэк по префиксу названия плюс замечание в аудите. */
 
+/* Укрупнённые этапы сети: используются для оси «по потоку» и раскраски в
+   режиме по умолчанию (coarse). s1..s5 упорядочены слева направо. */
+const STAGES = {
+  s0: { name: 'Прочие узлы', icon: '🏬', color: '#7c5cd6', rank: 6 },
+  s1: { name: 'Поставщики', icon: '📦', color: '#ff9a3b', rank: 1 },
+  s2: { name: 'Транзит', icon: '🧭', color: '#3fa9c9', rank: 2 },
+  s3: { name: 'Заводы', icon: '🏭', color: '#2d3f8f', rank: 3 },
+  s4: { name: 'РЦ/Склады', icon: '🏢', color: '#0d9488', rank: 4 },
+  s5: { name: 'Сбыт', icon: '🛒', color: '#22bb55', rank: 5 }
+};
+
+/* loctype (число) → бизнес-тип локации. Это «справочник видов локаций»,
+   он зашит в код: 41 — Внешний склад, 11 — Поставщик и т.д. */
+const LOCTYPE_MAP = {
+  11: { name: 'Поставщик', icon: '📦', color: '#ff9a3b', stage: 's1' },
+  12: { name: 'ЖД Станция', icon: '🚆', color: '#607d8b', stage: 's2' },
+  13: { name: 'Порт', icon: '⚓', color: '#3fa9c9', stage: 's2' },
+  14: { name: 'Пограничный переход', icon: '🛃', color: '#6a89cc', stage: 's2' },
+  21: { name: 'Завод', icon: '🏭', color: '#2d3f8f', stage: 's3' },
+  31: { name: 'Склад', icon: '🏢', color: '#0d9488', stage: 's4' },
+  41: { name: 'Внешний склад', icon: '🏬', color: '#149e6b', stage: 's4' },
+  42: { name: 'Склад завода', icon: '🏭', color: '#2aa1af', stage: 's4' },
+  43: { name: 'Склад 3PL', icon: '🗄', color: '#4a8fe0', stage: 's4' },
+  51: { name: 'Ключевой клиент', icon: '⭐', color: '#22bb55', stage: 's5' },
+  52: { name: 'Прочие клиенты', icon: '🛒', color: '#8fd14f', stage: 's5' }
+};
+/* Канонический порядок детальных типов (для сортировки групп в сайдбаре) */
+const FINE_ORDER = [11, 12, 13, 14, 21, 31, 41, 42, 43, 51, 52];
+
+/* Индекс справочника loc: код локации → loctype. Перестраивается при каждой
+   загрузке раздела loc (см. rebuildLocIndex). */
+let LOC_INDEX = new Map();
+
+/* rebuildLocIndex() вызывается везде, где перезаписывается MODEL.loc. */
+function rebuildLocIndex() {
+  LOC_INDEX = new Map();
+  (MODEL.loc || []).forEach((r) => {
+    if (r && r.loc) LOC_INDEX.set(String(r.loc), r.loctype != null ? Number(r.loctype) : null);
+  });
+}
+
+/* Фолбэк-классификация по префиксу названия — когда локации нет в loc.
+   Приоритет: специфичные транспортные типы раньше общих (РЦ/Склад и т.п.). */
+const PREFIX_RULES = [
+  [/^(ЖД|RAIL|STATION|СТАНЦИ)/i, 12],
+  [/^(ПОГРАНИЧ|BORDER|ТАМОЖН)/i, 14],
+  [/^(PORT|ПОРТ)/i, 13],
+  [/^(VENDOR|SUPP|ПОСТАВЩ)/i, 11],
+  [/^(PLANT|FACT|ЗАВОД|ПРОИЗВ)/i, 21],
+  [/^(DISPATCH|DC|WH|РЦ|СКЛАД|СЛОТ|ХРАН)/i, 31],
+  [/^(SALE|CUST|CLIENT|СБЫТ|КЛИЕНТ|ПОКУП|ДИСТРИБ)/i, 52]
+];
+
+function prefixLoctype(loc) {
+  const l = String(loc || '');
+  for (const [re, code] of PREFIX_RULES) if (re.test(l)) return code;
+  return null;
+}
+
+/* Классификация локации → бизнес-тип, этап и источник определения. */
+function classifyLoc(loc) {
+  const s = String(loc || '');
+  const refCode = LOC_INDEX.has(s) ? LOC_INDEX.get(s) : null;
+  let code = refCode;
+  let lt = (code != null && LOCTYPE_MAP[code]) ? LOCTYPE_MAP[code] : null;
+  let source = lt ? 'ref' : 'none';
+  if (!lt) {
+    const pc = prefixLoctype(s);
+    if (pc != null && LOCTYPE_MAP[pc]) { code = pc; lt = LOCTYPE_MAP[pc]; source = 'prefix'; }
+  }
+  if (!lt) return { code: null, lt: null, stageKey: 's0', source: 'none', fineName: 'Тип не определён', coarseName: STAGES.s0.name };
+  return { code, lt, stageKey: lt.stage, source, fineName: lt.name, coarseName: STAGES[lt.stage].name };
+}
+
+/* getNodeCategory — обёртка для остального кода; результат зависит от текущего
+   режима TYPE_GRANULARITY (coarse — этап, detail — бизнес-тип loctype). */
 function getNodeCategory(loc) {
-  const l = String(loc || '').toUpperCase();
-  for (const c of CATEGORIES) if (c.test(l)) return c;
-  return OTHER_CAT;
+  const c = classifyLoc(loc);
+  const base = {
+    stageKey: c.stageKey,
+    fineName: c.fineName,
+    coarseName: c.coarseName,
+    source: c.source,
+    code: c.code,
+    lt: c.lt
+  };
+  if (TYPE_GRANULARITY === 'detail') {
+    if (!c.lt) return Object.assign({ cat: 'Тип не определён', icon: STAGES.s0.icon, color: STAGES.s0.color, rank: 99 }, base);
+    const idx = FINE_ORDER.indexOf(c.code);
+    return Object.assign({ cat: c.fineName, icon: c.lt.icon, color: c.lt.color, rank: idx < 0 ? 90 : idx }, base);
+  }
+  const st = STAGES[c.stageKey];
+  return Object.assign({ cat: st.name, icon: st.icon, color: st.color, rank: st.rank }, base);
+}
+
+/* Есть ли локация на «сбытовом» этапе — независимо от режима гранулярности. */
+function isInStage(loc, stageKey) {
+  return classifyLoc(loc).stageKey === stageKey;
 }
 
 function buildGraphTopology(relayout) {
@@ -1908,6 +2066,10 @@ function buildGraphTopology(relayout) {
       nodeMap.set(id, {
         id, label,
         cat: info.cat, icon: info.icon, color: info.color, rank: info.rank,
+        /* Доп. сведения о типе: business-имя loctype и укрупнённый этап.
+           (info.code — числовой loctype, null если не определён.) */
+        loctype: info.fineName, stageName: info.coarseName,
+        stageKey: info.stageKey, srcType: info.source, locTypeCode: info.code,
         x: 0, y: 0,
         w: Math.max(126, Math.min(210, 34 + label.length * 6.6)),
         h: 42,
@@ -2026,7 +2188,12 @@ function layoutGraph(relayout) {
   const GAP_Y = 20;
   let cursorX = 60;
   const columnX = new Map();
-  layers.forEach((L) => {
+  /* Ось раскладки. По умолчанию (LAYOUT_REVERSE=false) поток идёт слева направо
+     по направлению рёбер — там, где данные заданы «поставщик → сбыт», получаем
+     бизнес-направление. Реверс зеркалит порядок колонок: крайние «сбытовые»
+     узлы уходят влево — трассировка от сбыта к сырью. */
+  const colOrder = LAYOUT_REVERSE ? layers.slice().reverse() : layers;
+  colOrder.forEach((L) => {
     const list = groups.get(L);
     const maxW = Math.max.apply(null, list.map((n) => n.w));
     columnX.set(L, cursorX);
@@ -2261,7 +2428,11 @@ function renderScene(ctx, opt) {
 
     ctx.font = '400 9.5px "Open Sans", sans-serif';
     ctx.fillStyle = active ? P.sub : P.subDim;
-    const meta = n.cat + (n.inDeg || n.outDeg ? '  ↓' + n.inDeg + ' ↑' + n.outDeg : '');
+    /* Под названием локации показываем бизнес-тип: в детальном режиме он
+       совпадает с n.cat, в режиме по умолчанию (coarse) — уточнённое имя
+       loctype (этап уже передан цветом/иконкой). */
+    const tType = TYPE_GRANULARITY === 'detail' ? n.cat : (n.loctype || n.cat);
+    const meta = tType + (n.inDeg || n.outDeg ? '  ↓' + n.inDeg + ' ↑' + n.outDeg : '');
     ctx.fillText(truncateToWidth(ctx, meta, n.x + n.w - tx - 8), tx, n.y + 32);
   });
 
@@ -2451,7 +2622,10 @@ function showNodeTip(n, x, y) {
   const pdsHere = ds.pds.filter((p) => p.loc === n.id);
   const warns = MODEL.audit.filter((a) => a.locs.includes(n.id));
   let html = '<div class="tip-hd">' + esc(n.icon + ' ' + n.label) + '</div>';
-  html += tipRow('Категория', n.cat);
+  html += tipRow('Этап', n.stageName || n.cat);
+  html += tipRow('Тип', n.loctype || n.cat);
+  if (n.locTypeCode != null) html += tipRow('loctype (код)', n.locTypeCode);
+  if (n.srcType === 'prefix') html += tipRow('Источник типа', 'по названию — нет в loc');
   html += tipRow('Связи', 'вход ' + n.inDeg + ' · выход ' + n.outDeg);
   html += tipRow('Продуктов (SKU)', skuHere.length);
   if (resHere.length) html += tipRow('Ресурсов', resHere.length);
@@ -2580,11 +2754,15 @@ function renderSidebarNodes() {
       const on = FILTERS.nodes.has(id);
       // data-атрибуты вместо inline onchange: имя локации с кавычкой
       // больше не ломает разметку и не может выполнить код.
+      const typName = classifyLoc(id).fineName;
       parts.push(
         '<label class="sb-item' + (on ? ' on' : '') + '">' +
         '<input type="checkbox" data-node="' + esc(id) + '"' + (on ? ' checked' : '') + '>' +
         '<span class="sb-item-icon" aria-hidden="true">' + esc(g.icon) + '</span>' +
-        '<span title="' + esc(id) + '">' + esc(id) + '</span></label>'
+        '<span class="sb-itxt">' +
+          '<span class="sb-iid" title="' + esc(id) + '">' + esc(id) + '</span>' +
+          (typName ? '<span class="sb-ityp" title="' + esc(typName) + '">' + esc(typName) + '</span>' : '') +
+        '</span></label>'
       );
     });
     parts.push('</div></div>');
@@ -2914,6 +3092,7 @@ function refreshUI(relayout) {
   renderFilterPills();
   renderBottomTable();
   if (VIEW_MODE === 'graph') drawGraph(); else renderMatrixView();
+  renderLegend();
 
   const fWrap = $('focusPillWrap');
   if (FOCUS_NODE_ID) {
@@ -2924,13 +3103,47 @@ function refreshUI(relayout) {
     fWrap.style.display = 'none';
   }
   updateZoomLabel();
+  updateGraphChips();
   persistUI();
 }
 
+/* Легенда строится из фактически показанных категорий (цвет/иконка совпадают
+   с узлами). В детальном режиме это типы loctype, в режиме по умолчанию —
+   укрупнённые этапы. */
 function renderLegend() {
-  $('graphLegend').innerHTML = CATEGORIES.concat([OTHER_CAT])
-    .map((c) => '<span title="' + esc(c.cat) + '">' + c.icon + ' ' + esc(c.cat) + '</span>')
+  const seen = new Map();
+  GRAPH.nodes.forEach((n) => {
+    const prev = seen.get(n.cat);
+    if (!prev || prev.rank > n.rank) seen.set(n.cat, n);
+  });
+  const items = Array.from(seen.values()).sort((a, b) => a.rank - b.rank);
+  $('graphLegend').innerHTML = items
+    .map((n) => {
+      const tip = n.cat + (n.loctype && n.loctype !== n.cat ? ' · ' + n.loctype : '');
+      return '<span title="' + esc(tip) + '">' + n.icon + ' ' + esc(n.cat) + '</span>';
+    })
     .join('');
+}
+
+/* Состояние переключателей «направление» и «детализация типов» → в шапке графа */
+function updateGraphChips() {
+  const dir = $('bDir');
+  const gran = $('bGran');
+  if (dir) {
+    dir.classList.toggle('on', LAYOUT_REVERSE);
+    dir.setAttribute('aria-pressed', String(LAYOUT_REVERSE));
+    dir.textContent = LAYOUT_REVERSE ? '↔ от сбыта' : '↔ по потоку';
+    dir.title = LAYOUT_REVERSE
+      ? 'Схема развёрнута от сбыта к сырью. Нажмите — показать по потоку (поставщики слева → сбыт справа)'
+      : 'Показать по потоку: поставщики слева → сбыт справа. Нажмите — развернуть от сбыта к сырью';
+  }
+  if (gran) {
+    const det = TYPE_GRANULARITY === 'detail';
+    gran.classList.toggle('on', det);
+    gran.setAttribute('aria-pressed', String(det));
+    gran.textContent = det ? 'типы: детально' : 'типы: укрупнённо';
+    gran.title = 'Как показывать тип узла: укрупнённые этапы сети или каждый loctype (Внешний склад, Склад 3PL…) своим цветом';
+  }
 }
 
 function switchMode(mode) {
@@ -3066,6 +3279,8 @@ function persistUI() {
       theme: document.documentElement.getAttribute('data-theme'),
       mode: VIEW_MODE,
       tab: ACTIVE_TAB,
+      typeGran: TYPE_GRANULARITY,
+      dirRev: LAYOUT_REVERSE,
       sheetH: $('bottomSheet').style.height || '',
       sheetCollapsed: $('bottomSheet').classList.contains('collapsed'),
       sbMin: $('sidebar').classList.contains('min')
@@ -3077,7 +3292,7 @@ function persistUI() {
    уничтожал результат загрузки нескольких книг. */
 function persistModel() {
   try {
-    const payload = JSON.stringify({ savedAt: Date.now(), sku: MODEL.sku, res: MODEL.res, prodsource: MODEL.prodsource, tlane: MODEL.tlane });
+    const payload = JSON.stringify({ savedAt: Date.now(), sku: MODEL.sku, res: MODEL.res, prodsource: MODEL.prodsource, tlane: MODEL.tlane, loc: MODEL.loc });
     if (payload.length > 4.5e6) { localStorage.removeItem(LS_MODEL); return; }
     localStorage.setItem(LS_MODEL, payload);
   } catch (e) {
@@ -3102,11 +3317,17 @@ function restoreSession() {
       } else if (m && (m.sku || m.tlane)) {
         MODEL.sku = m.sku || []; MODEL.res = m.res || [];
         MODEL.prodsource = m.prodsource || []; MODEL.tlane = m.tlane || [];
+        MODEL.loc = m.loc || [];
+        rebuildLocIndex();
         restored = MODEL.sku.length > 0 || MODEL.tlane.length > 0;
       }
     }
   } catch (e) { void e; }
   if (!restored) loadSeed();
+
+  // Восстанавливаем выбранные пользователем режимы детализации и направления
+  TYPE_GRANULARITY = ui.typeGran === 'detail' ? 'detail' : 'coarse';
+  LAYOUT_REVERSE = ui.dirRev === true;
 
   if (ui.tab && TABLE_DEFS[ui.tab]) {
     ACTIVE_TAB = ui.tab;
@@ -3150,7 +3371,7 @@ const CH = {
   online: false,
   dbs: [],
   db: '',
-  tables: { sku: '', res: '', prodsource: '', tlane: '' }
+  tables: { sku: '', res: '', prodsource: '', tlane: '', loc: '' }
 };
 
 try {
@@ -3242,7 +3463,8 @@ const CH_TABLE_HINTS = {
   sku: ['sku', 'skus', 'itemsku'],
   res: ['res', 'rescapacity', 'res_sp', 'resources'],
   prodsource: ['prodsource_sp', 'prodsource', 'prod_source', 'pds'],
-  tlane: ['tlane_prod_mot', 'tlane', 'transport_lanes', 'lanes']
+  tlane: ['tlane_prod_mot', 'tlane', 'transport_lanes', 'lanes'],
+  loc: ['loc', 'locations', 'loc_sp']
 };
 
 function chGuessTable(kind, names) {
@@ -3266,7 +3488,8 @@ const CH_ACTIVE_FILTERS = {
   sku: flagActive('is_deleted'),
   res: flagActive('is_deleted'),
   prodsource: flagActive('is_deleted') + ' AND ' + flagActive('delflag'),
-  tlane: flagActive('is_deleted')
+  tlane: flagActive('is_deleted'),
+  loc: flagActive('is_deleted') + ' AND ' + flagActive('delflag')
 };
 
 async function chSelectAll(kind, db, tbl, limit) {
@@ -3341,13 +3564,14 @@ async function chConnect(quiet) {
 
 async function chLoadTablesIntoDialog() {
   const names = await chListTables(CH.db);
-  ['sku', 'res', 'prodsource', 'tlane'].forEach((kind) => {
+  ['sku', 'res', 'prodsource', 'tlane', 'loc'].forEach((kind) => {
     if (!CH.tables[kind] || !names.includes(CH.tables[kind])) CH.tables[kind] = chGuessTable(kind, names);
   });
   fillSelect($('chTblSku'), names, CH.tables.sku, '⛭ достроить из tlane/PDS');
   fillSelect($('chTblRes'), names, CH.tables.res, '⛭ пропустить раздел');
   fillSelect($('chTblPds'), names, CH.tables.prodsource);
   fillSelect($('chTblTlane'), names, CH.tables.tlane);
+  fillSelect($('chTblLoc'), names, CH.tables.loc, '⛭ тип узлов по названию');
   persistCh();
 }
 
@@ -3356,12 +3580,13 @@ function readChTablesFromDialog() {
   CH.tables.res = $('chTblRes').value;
   CH.tables.prodsource = $('chTblPds').value;
   CH.tables.tlane = $('chTblTlane').value;
+  CH.tables.loc = $('chTblLoc').value;
   persistCh();
 }
 
 /* Проверка распознавания колонок: берём образец строк и смотрим, сколько из них
    проходит обязательные поля, и чего именно не хватает. */
-const CH_REQUIRED_FIELDS = { sku: ['item', 'loc'], res: ['id'], prodsource: ['item', 'loc'], tlane: ['locfr', 'locto'] };
+const CH_REQUIRED_FIELDS = { sku: ['item', 'loc'], res: ['id'], prodsource: ['item', 'loc'], tlane: ['locfr', 'locto'], loc: ['loc'] };
 
 async function chCheckMapping() {
   readChTablesFromDialog();
@@ -3369,11 +3594,12 @@ async function chCheckMapping() {
   out.classList.add('show');
   out.textContent = 'Проверяю образцы строк...';
   const lines = [];
-  for (const kind of ['sku', 'res', 'prodsource', 'tlane']) {
+  for (const kind of ['sku', 'res', 'prodsource', 'tlane', 'loc']) {
     const tbl = CH.tables[kind];
     if (!tbl) {
       if (kind === 'sku') lines.push('⛭ sku: таблица не выбрана — раздел будет достроен из tlane/prodsource');
       else if (kind === 'res') lines.push('⛭ res: раздел пропущен — ресурсов на графе не будет');
+      else if (kind === 'loc') lines.push('⛭ loc: таблица не выбрана — тип узлов определится по названию');
       else lines.push('✘ ' + kind + ': таблица не выбрана');
       continue;
     }
@@ -3401,15 +3627,15 @@ async function chImportModel() {
   readChTablesFromDialog();
   if (!CH.online || !CH.db) { toast('Сначала подключитесь к ClickHouse', 'warn'); return; }
   setBusy(true);
-  const merged = { sku: [], res: [], prodsource: [], tlane: [] };
+  const merged = { sku: [], res: [], prodsource: [], tlane: [], loc: [] };
   const problems = [];
   const truncated = [];
   try {
-    for (const kind of ['sku', 'res', 'prodsource', 'tlane']) {
+    for (const kind of ['sku', 'res', 'prodsource', 'tlane', 'loc']) {
       const tbl = CH.tables[kind];
       if (!tbl) {
-        // sku/res — необязательные разделы: sku достроится из плеч и рецептур,
-        // res останется пустым. Это не ошибка, так задумано.
+        // sku/res/loc — необязательные разделы: sku достроится из плеч и рецептур,
+        // res/loc останутся пустыми (тип узлов — по названию). Это не ошибка.
         if (kind === 'prodsource' || kind === 'tlane') problems.push(kind + ': таблица не выбрана');
         continue;
       }
@@ -3427,6 +3653,8 @@ async function chImportModel() {
     MODEL.res = merged.res;
     MODEL.prodsource = merged.prodsource;
     MODEL.tlane = merged.tlane;
+    MODEL.loc = merged.loc;
+    rebuildLocIndex();
 
     // Всегда достраиваем SKU из плеч и рецептур: если таблица sku не выбрана,
     // это и есть основной источник раздела; если выбрана — докинет недостающие пары.
@@ -3440,7 +3668,7 @@ async function chImportModel() {
 
     // Статистику считаем ПОСЛЕ достройки SKU — иначе при невыбранной таблице sku
     // тост показывал бы «sku: 0», хотя раздел полон.
-    const stat = ['sku', 'res', 'prodsource', 'tlane']
+    const stat = ['sku', 'res', 'prodsource', 'tlane', 'loc']
       .filter((k) => MODEL[k].length)
       .map((k) => k + ': ' + MODEL[k].length + (k === 'sku' && !CH.tables.sku ? ' (авто)' : ''))
       .join(' · ');
@@ -3482,7 +3710,7 @@ $('chDbSel').onchange = async () => {
   renderChChip();
   try { await chLoadTablesIntoDialog(); } catch (e) { setChStatus('err', e.message); }
 };
-['chTblSku', 'chTblRes', 'chTblPds', 'chTblTlane'].forEach((id) => { $(id).onchange = readChTablesFromDialog; });
+['chTblSku', 'chTblRes', 'chTblPds', 'chTblTlane', 'chTblLoc'].forEach((id) => { $(id).onchange = readChTablesFromDialog; });
 $('chCheckMap').onclick = () => chCheckMapping();
 $('chLoadData').onclick = async () => {
   const ok = await chImportModel();
@@ -3657,6 +3885,24 @@ $('bZoomOut').onclick = () => zoomBy(1 / 1.2);
 $('bZoomFit').onclick = () => zoomToFit();
 $('bRelayout').onclick = () => { layoutGraph(true); zoomToFit(); toast('Раскладка пересобрана, закрепления сняты', 'info'); };
 
+// Направление раскладки (по потоку / реверс от сбыта)
+$('bDir').onclick = () => {
+  LAYOUT_REVERSE = !LAYOUT_REVERSE;
+  layoutGraph(false);
+  updateGraphChips();
+  scheduleDraw();
+  persistUI();
+  zoomToFit();
+  toast(LAYOUT_REVERSE ? 'Схема развёрнута: сбыт слева → поставщики справа' : 'Схема по потоку: поставщики слева → сбыт справа', 'info');
+};
+
+// Детализация типа узла (укрупнённо по этапам / детально по loctype)
+$('bGran').onclick = () => {
+  TYPE_GRANULARITY = TYPE_GRANULARITY === 'detail' ? 'coarse' : 'detail';
+  refreshUI();
+  toast(TYPE_GRANULARITY === 'detail' ? 'Типы показаны детально — по loctype' : 'Типы показаны укрупнённо — по этапам сети', 'info');
+};
+
 // Ресайзер нижней панели (без выделения текста при перетаскивании)
 const resizer = $('bsResizer');
 let isResizing = false;
@@ -3725,7 +3971,6 @@ document.addEventListener('keydown', (e) => {
   if (typeof XLSX === 'undefined') {
     toast('Библиотека SheetJS не загрузилась (нет доступа к CDN). Импорт и экспорт XLSX недоступны, остальной интерфейс работает.', 'err', 'Офлайн-режим', 12000);
   }
-  renderLegend();
   const { restored, mode } = restoreSession();
   runModelAudit();
   if (mode === 'matrix') switchMode('matrix'); else refreshUI(true);
