@@ -52,40 +52,41 @@
 }
 
 [data-theme="dark"] {
-  --scp-bg: #1a1a22;
-  --scp-surface: #22222c;
-  --scp-surface-2: #292936;
-  --scp-rail: #15151c;
-  --scp-rail-2: #2f2f3d;
-  --scp-rail-hover: #252533;
+  /* Мягкая graphite/slate-тема: не чёрная, с более читаемыми слоями и линиями. */
+  --scp-bg: #242632;
+  --scp-surface: #2d3040;
+  --scp-surface-2: #35384a;
+  --scp-rail: #202230;
+  --scp-rail-2: #3a3d50;
+  --scp-rail-hover: #323548;
   
-  --scp-text: #f1f2f6;
-  --scp-text-2: #c4c6d4;
-  --scp-text-3: #8f92a4;
-  --scp-text-dis: #525464;
-  --scp-link: #4d88ff;
+  --scp-text: #f5f6fb;
+  --scp-text-2: #d7dae8;
+  --scp-text-3: #aeb3c6;
+  --scp-text-dis: #70768d;
+  --scp-link: #7fa7ff;
   
-  --scp-line: #2d2d3a;
-  --scp-line-2: #383849;
-  --scp-divider: #434357;
-  --scp-ctrl: #616378;
-  --scp-ctrl-hover: #9a9cb2;
-  --scp-menu-bd: #434357;
+  --scp-line: #404458;
+  --scp-line-2: #4a4f65;
+  --scp-divider: #5a6076;
+  --scp-ctrl: #737990;
+  --scp-ctrl-hover: #c2c7d8;
+  --scp-menu-bd: #545a70;
   
-  --scp-accent: #a846ff;
-  --scp-accent-hover: #962bf9;
-  --scp-accent-active: #be6bff;
-  --scp-accent-sub: #c47aff;
-  --scp-accent-2: #d79aff;
-  --scp-accent-bd: #6e2da8;
-  --scp-accent-bg: #3a195a;
+  --scp-accent: #b768ff;
+  --scp-accent-hover: #c47dff;
+  --scp-accent-active: #d29bff;
+  --scp-accent-sub: #cb86ff;
+  --scp-accent-2: #ddb3ff;
+  --scp-accent-bd: #8351aa;
+  --scp-accent-bg: #4b2f68;
   
-  --scp-ok: #2dd468;
-  --scp-ok-bg: #143823;
-  --scp-err: #f84b5c;
-  --scp-err-bg: #42171c;
-  --scp-warn: #fb9e38;
-  --scp-warn-bg: #41290f;
+  --scp-ok: #47dc78;
+  --scp-ok-bg: #1d4930;
+  --scp-err: #ff6574;
+  --scp-err-bg: #5b252d;
+  --scp-warn: #ffbd62;
+  --scp-warn-bg: #5a3c17;
 }
 
 * { box-sizing: border-box; }
@@ -381,23 +382,53 @@ header {
   font: 400 12px 'Open Sans', sans-serif;
 }
 .sb-search input:focus { outline: none; border-color: var(--scp-accent); }
-/* Переключатель охвата фильтра узлов: 2×2 («Соседи» / «Цепочка» / «Поставщики» /
-   «Сбыт»). Сайдбар 250px, поэтому кнопки переносятся в две строки. */
+/* Переключатель фильтра узлов: два основных режима («Соседи» / «Цепочка»)
+   и дополнительное ограничение потока («Поставщики» / «Сбыт»). Если кнопка
+   потока не активна — показывается весь поток; повторный клик по активной
+   кнопке снова включает весь поток. */
 .sb-mode {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 2px;
   margin: 8px 10px 0;
+  padding: 7px;
+  border: 1px solid var(--scp-line);
+  border-radius: var(--r-m);
+  background: var(--scp-surface-2);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
 }
-.sb-mode button {
-  flex: 1 1 calc(50% - 2px);
+.sb-mode-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.sb-mode-label {
+  flex: 0 0 44px;
+  color: var(--scp-text-3);
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .35px;
+}
+.sb-mode .seg-btn {
+  flex: 1;
+  width: 100%;
+  background: var(--scp-surface);
+}
+.sb-mode .seg-btn button {
+  flex: 1 1 0;
   white-space: nowrap;
-  padding: 4px 6px;
-  font-size: 11px;
+  padding: 4px 5px;
+  font-size: 10.5px;
+}
+.sb-mode-state {
+  color: var(--scp-text-3);
+  font-size: 10.5px;
+  line-height: 14px;
+  padding-left: 50px;
 }
 /* Пока ни один узел не выбран, переключатель приглушён: на выдачу он тогда
    не влияет, но остаётся доступен (режим запоминается). */
-.sb-mode.dim { opacity: 0.45; }
+.sb-mode.dim { opacity: 0.62; }
 .sb-tree {
   flex: 1;
   overflow-y: auto;
@@ -519,6 +550,13 @@ header {
   gap: 4px;
 }
 .graph-focus-pill button { border: 0; background: transparent; cursor: pointer; color: var(--scp-accent); font-weight: 700; padding: 0 2px; }
+.graph-focus-pill.selected {
+  background: var(--scp-warn-bg);
+  color: #9a5a00;
+  border: 1px solid rgba(255, 154, 59, .45);
+}
+[data-theme="dark"] .graph-focus-pill.selected { color: #ffe0a3; }
+.graph-focus-pill.selected button { color: inherit; text-decoration: underline; text-underline-offset: 2px; }
 
 /* Переключатели направления и детализации типов в тулбаре графа */
 .graph-toolbar .gb-ctl { margin-left: auto; display: flex; align-items: center; gap: 6px; }
@@ -1133,11 +1171,22 @@ td.cell-link:hover { color: var(--scp-accent); }
     <div class="sb-search">
       <input type="text" id="sbSearchInput" placeholder="Поиск узла... (/)" aria-label="Поиск узла сети">
     </div>
-    <div class="sb-mode seg-btn" id="sbNodeMode" role="group" aria-label="Охват фильтра узлов: что показывать при выборе узлов">
-      <button type="button" data-nmode="neighbors" aria-pressed="false" title="Только непосредственные партнёры выбранных узлов — один шаг вверх и вниз по потоку">Соседи</button>
-      <button type="button" data-nmode="chain" aria-pressed="true" title="Вся сквозная цепочка через выбранные узлы: все источники поставок ↑ и все направления сбыта ↓">Цепочка ↑↓</button>
-      <button type="button" data-nmode="upstream" aria-pressed="false" title="Только цепочка вверх по потоку от выбранных узлов: поставщики и их источники">Поставщики ↑</button>
-      <button type="button" data-nmode="downstream" aria-pressed="false" title="Только цепочка вниз по потоку от выбранных узлов: направления сбыта до конечных точек">Сбыт ↓</button>
+    <div class="sb-mode" id="sbNodeMode" aria-label="Режим фильтра узлов">
+      <div class="sb-mode-row">
+        <div class="sb-mode-label">Режим</div>
+        <div class="seg-btn" role="group" aria-label="Основной режим фильтра узлов">
+          <button type="button" data-nscope="neighbors" aria-pressed="false" title="Только непосредственные партнёры выбранных узлов">Соседи</button>
+          <button type="button" data-nscope="chain" aria-pressed="true" title="Сквозная цепочка через выбранные узлы">Цепочка</button>
+        </div>
+      </div>
+      <div class="sb-mode-row">
+        <div class="sb-mode-label">Поток</div>
+        <div class="seg-btn" role="group" aria-label="Ограничение направления потока">
+          <button type="button" data-ndir="upstream" aria-pressed="false" title="Оставить только поставщиков: вверх по потоку от выбранных узлов. Повторный клик вернёт весь поток">Поставщики ↑</button>
+          <button type="button" data-ndir="downstream" aria-pressed="false" title="Оставить только сбыт: вниз по потоку от выбранных узлов. Повторный клик вернёт весь поток">Сбыт ↓</button>
+        </div>
+      </div>
+      <div class="sb-mode-state" id="sbNodeModeState">Весь поток</div>
     </div>
     <div class="sb-tree" id="sbTree"></div>
   </aside>
@@ -1148,6 +1197,9 @@ td.cell-link:hover { color: var(--scp-accent); }
     <div class="graph-toolbar" id="gToolbar">
       <span>Сетка: <span class="graph-stats" id="graphStat">0 узлов · 0 связей</span></span>
       <div class="graph-legend" id="graphLegend"></div>
+      <div id="selectedPillWrap" style="display:none">
+        <span class="graph-focus-pill selected"><span id="selectedPillText">Выбрано</span> <button id="bShowSelected" title="Показать выбранные узлы на графе" aria-label="Показать выбранные узлы">Показать</button></span>
+      </div>
       <div id="focusPillWrap" style="display:none">
         <span class="graph-focus-pill"><span id="focusPillText">Фокус</span> <button id="bClearFocus" title="Сбросить фокус (Esc)" aria-label="Сбросить фокус">✕</button></span>
       </div>
@@ -1426,14 +1478,13 @@ function loadSeed() {
 const FILTERS = { items: new Set(), pds: new Set(), nodes: new Set(), mots: new Set() };
 
 /* Охват фильтра узлов (переключатель в сайдбаре, см. #sbNodeMode):
-   'neighbors'  — только непосредственные партнёры (1 шаг вверх и вниз);
-   'chain'      — вся сквозная цепочка: все источники поставок ↑ и весь сбыт ↓;
-   'upstream'   — только цепочка вверх по потоку (поставщики и их источники);
-   'downstream' — только цепочка вниз по потоку (направления сбыта).
-   Режим — предпочтение вида: «Сбросить фильтры» его не трогает, и он
-   персистится в localStorage вместе с детализацией типов и направлением. */
-const NODE_FILTER_MODES = ['neighbors', 'chain', 'upstream', 'downstream'];
-let NODE_FILTER_MODE = 'chain';
+   две независимые оси — основной режим ('neighbors' / 'chain') и направление
+   ('both' / 'upstream' / 'downstream'). «Поставщики» и «Сбыт» — временные
+   ограничения внутри основного режима; повторный клик снимает ограничение. */
+const NODE_SCOPE_MODES = ['neighbors', 'chain'];
+const NODE_DIRECTION_MODES = ['both', 'upstream', 'downstream'];
+let NODE_SCOPE_MODE = 'chain';
+let NODE_DIRECTION_MODE = 'both';
 
 let FOCUS_NODE_ID = null;
 let VIEW_MODE = 'graph';
@@ -1904,16 +1955,22 @@ function detectCycles(outMap) {
 /* ═══════════════ 5. ФИЛЬТРАЦИЯ ═══════════════ */
 
 /* Охват фильтра узлов: какие локации считаются связанными с выбранными.
-   'neighbors' — прямые партнёры (плечи, где выбранный узел — конечная точка);
-   остальные режимы — направленный BFS по плечам: вверх (поставщики) — обход
-   по обратным рёбрам, вниз (сбыт) — по прямым. Несколько выбранных узлов
-   дают ОБЪЕДИНЕНИЕ их цепочек. Параллельные цепочки других узлов
-   (например, чужой завод → общий РЦ) в охват не попадают: двигаясь от узла
-   только «к себе» и «от себя», мы показываем именно его сквозные потоки.
+   scope='neighbors' — только прямые партнёры; scope='chain' — направленный BFS
+   по плечам. direction='upstream' идёт к поставщикам по обратным рёбрам,
+   direction='downstream' — к сбыту по прямым, direction='both' объединяет оба
+   направления. Несколько выбранных узлов дают ОБЪЕДИНЕНИЕ их цепочек.
    Возвращает { tlane:отфильтрованные плечи, locs:активные локации }. */
-function computeNodeScope(tlane, selected, mode) {
-  if (mode === 'neighbors') {
-    const keep = tlane.filter((t) => selected.has(t.locfr) || selected.has(t.locto));
+function computeNodeScope(tlane, selected, scopeMode, directionMode) {
+  const scope = NODE_SCOPE_MODES.includes(scopeMode) ? scopeMode : 'chain';
+  const dir = NODE_DIRECTION_MODES.includes(directionMode) ? directionMode : 'both';
+  const includeUp = dir === 'both' || dir === 'upstream';
+  const includeDown = dir === 'both' || dir === 'downstream';
+
+  if (scope === 'neighbors') {
+    const keep = tlane.filter((t) =>
+      (includeUp && selected.has(t.locto)) ||
+      (includeDown && selected.has(t.locfr))
+    );
     const locs = new Set(keep.flatMap((t) => [t.locfr, t.locto]));
     selected.forEach((n) => locs.add(n));
     return { tlane: keep, locs };
@@ -1935,8 +1992,8 @@ function computeNodeScope(tlane, selected, mode) {
   };
 
   const locs = new Set(selected);
-  if (mode === 'chain' || mode === 'upstream') walkDir(inn).forEach((l) => locs.add(l));
-  if (mode === 'chain' || mode === 'downstream') walkDir(out).forEach((l) => locs.add(l));
+  if (includeUp) walkDir(inn).forEach((l) => locs.add(l));
+  if (includeDown) walkDir(out).forEach((l) => locs.add(l));
 
   /* Плечи оставляем только ВНУТРИ охвата (оба конца в множестве) — иначе
      от соседнего узла цепочки «просочились» бы чужие ветки. */
@@ -1973,11 +2030,11 @@ function getFilteredDataset() {
   }
 
   if (FILTERS.nodes.size) {
-    /* Охват настраивается переключателем в сайдбаре (#sbNodeMode): «Соседи» —
-       старая логика 1 шага; «Цепочка ↑↓» / «Поставщики ↑» / «Сбыт ↓» —
-       направленный BFS. Цепочка строится по плечам, уже суженным фильтрами
-       продуктов/PDS/mot выше (последовательная логика фильтров). */
-    const scope = computeNodeScope(tlane, FILTERS.nodes, NODE_FILTER_MODE);
+    /* Охват настраивается переключателем в сайдбаре (#sbNodeMode):
+       основной режим «Соседи»/«Цепочка» + опциональное ограничение
+       «Поставщики»/«Сбыт». Цепочка строится по плечам, уже суженным
+       фильтрами продуктов/PDS/mot выше (последовательная логика). */
+    const scope = computeNodeScope(tlane, FILTERS.nodes, NODE_SCOPE_MODE, NODE_DIRECTION_MODE);
     tlane = scope.tlane;
     const activeLocs = scope.locs;
     pds = pds.filter((p) => activeLocs.has(p.loc));
@@ -2291,28 +2348,46 @@ function layoutGraph(relayout) {
   });
 }
 
-function graphBounds() {
-  if (!GRAPH.nodes.length) return null;
+function graphBounds(nodes) {
+  const list = nodes || GRAPH.nodes;
+  if (!list.length) return null;
   let x1 = Infinity, y1 = Infinity, x2 = -Infinity, y2 = -Infinity;
-  GRAPH.nodes.forEach((n) => {
+  list.forEach((n) => {
     x1 = Math.min(x1, n.x); y1 = Math.min(y1, n.y);
     x2 = Math.max(x2, n.x + n.w); y2 = Math.max(y2, n.y + n.h);
   });
   return { x1, y1, x2, y2, w: x2 - x1, h: y2 - y1 };
 }
 
+function zoomToBounds(b, pad) {
+  const wrap = $('graphWrap');
+  if (!b || !wrap.clientWidth) return false;
+  const p = pad || 48;
+  const z = Math.max(0.2, Math.min(1.8, Math.min((wrap.clientWidth - p * 2) / Math.max(1, b.w), (wrap.clientHeight - p * 2) / Math.max(1, b.h))));
+  GRAPH.zoom = z;
+  GRAPH.panX = (wrap.clientWidth - b.w * z) / 2 - b.x1 * z;
+  GRAPH.panY = (wrap.clientHeight - b.h * z) / 2 - b.y1 * z;
+  updateZoomLabel();
+  scheduleDraw();
+  return true;
+}
+
 function zoomToFit(animate) {
   const b = graphBounds();
   const wrap = $('graphWrap');
   if (!b || !wrap.clientWidth) return;
-  const pad = 48;
-  const z = Math.max(0.2, Math.min(1.6, Math.min((wrap.clientWidth - pad * 2) / b.w, (wrap.clientHeight - pad * 2) / b.h)));
-  GRAPH.zoom = z;
-  GRAPH.panX = (wrap.clientWidth - b.w * z) / 2 - b.x1 * z;
-  GRAPH.panY = (wrap.clientHeight - b.h * z) / 2 - b.y1 * z;
   void animate;
-  updateZoomLabel();
-  scheduleDraw();
+  zoomToBounds(b, 48);
+}
+
+function zoomToSelectedNodes() {
+  if (!FILTERS.nodes.size) return;
+  const selected = GRAPH.nodes.filter((n) => FILTERS.nodes.has(n.id));
+  if (!selected.length) {
+    toast('Выбранные узлы не попали в текущий граф — проверьте остальные фильтры', 'warn');
+    return;
+  }
+  zoomToBounds(graphBounds(selected), selected.length === 1 ? 120 : 82);
 }
 const resetGraphView = () => { GRAPH.zoom = 1; GRAPH.panX = 40; GRAPH.panY = 40; PINNED.clear(); };
 const updateZoomLabel = () => { $('zoomLbl').textContent = Math.round(GRAPH.zoom * 100) + '%'; };
@@ -2377,8 +2452,8 @@ if (typeof CanvasRenderingContext2D !== 'undefined' && !CanvasRenderingContext2D
 }
 
 const PALETTE = {
-  light: { edge: '#c8cad6', edgeDim: '#e6e6ee', accent: '#9000ff', node: '#ffffff', nodeDim: '#f9f9fb', bd: '#dedce5', bdDim: '#e7e7ee', text: '#212529', textDim: '#b8b9c6', sub: '#8c9096', subDim: '#c8c9d4', chip: '#ffffff', err: '#f22a41' },
-  dark: { edge: '#3d3e52', edgeDim: '#23232f', accent: '#a846ff', node: '#22222c', nodeDim: '#1d1d25', bd: '#383849', bdDim: '#292936', text: '#f1f2f6', textDim: '#434354', sub: '#8f92a4', subDim: '#383846', chip: '#22222c', err: '#f84b5c' }
+  light: { edge: '#c8cad6', edgeDim: '#e6e6ee', accent: '#9000ff', selected: '#ff9a3b', selectedSoft: 'rgba(255,154,59,.28)', node: '#ffffff', nodeDim: '#f9f9fb', bd: '#dedce5', bdDim: '#e7e7ee', text: '#212529', textDim: '#b8b9c6', sub: '#8c9096', subDim: '#c8c9d4', chip: '#ffffff', err: '#f22a41' },
+  dark: { edge: '#686d86', edgeDim: '#45495d', accent: '#b768ff', selected: '#ffbd62', selectedSoft: 'rgba(255,189,98,.34)', node: '#303345', nodeDim: '#292c3b', bd: '#5b6076', bdDim: '#42475c', text: '#f5f6fb', textDim: '#969caf', sub: '#bdc2d3', subDim: '#7b8196', chip: '#36394c', err: '#ff6574' }
 };
 
 function truncateToWidth(ctx, text, maxW) {
@@ -2472,23 +2547,45 @@ function renderScene(ctx, opt) {
   GRAPH.nodes.forEach((n) => {
     const isTarget = opt.focusId === n.id;
     const isHovered = opt.hoverId === n.id;
+    const selectedByFilter = FILTERS.nodes.has(n.id);
     const active = nodeActive(n.id);
     const flagged = warnLocs && warnLocs.has(n.id);
+
+    if (selectedByFilter && active) {
+      ctx.save();
+      ctx.shadowColor = P.selectedSoft;
+      ctx.shadowBlur = 18;
+      ctx.shadowOffsetX = 0;
+      ctx.shadowOffsetY = 0;
+      ctx.fillStyle = P.selectedSoft;
+      ctx.beginPath();
+      ctx.roundRect(n.x - 4, n.y - 4, n.w + 8, n.h + 8, 9);
+      ctx.fill();
+      ctx.restore();
+    }
 
     ctx.beginPath();
     ctx.roundRect(n.x, n.y, n.w, n.h, 5);
     ctx.fillStyle = active ? P.node : P.nodeDim;
     ctx.fill();
 
-    if (isTarget) { ctx.strokeStyle = P.accent; ctx.lineWidth = 2.6; }
+    if (isTarget) { ctx.strokeStyle = P.accent; ctx.lineWidth = 2.8; }
     else if (flagged && active) { ctx.strokeStyle = P.err; ctx.lineWidth = 2; }
+    else if (selectedByFilter && active) { ctx.strokeStyle = P.selected; ctx.lineWidth = 2.7; }
     else if (active && (lineage || warnLocs)) { ctx.strokeStyle = P.accent; ctx.lineWidth = 1.8; }
     else if (isHovered) { ctx.strokeStyle = P.accent; ctx.lineWidth = 1.6; }
     else { ctx.strokeStyle = active ? P.bd : P.bdDim; ctx.lineWidth = 1; }
     ctx.stroke();
 
-    ctx.fillStyle = active ? n.color : P.bdDim;
+    ctx.fillStyle = active ? (selectedByFilter ? P.selected : n.color) : P.bdDim;
     ctx.fillRect(n.x, n.y + 4, 3.5, n.h - 8);
+
+    if (selectedByFilter && active) {
+      ctx.fillStyle = P.selected;
+      ctx.beginPath();
+      ctx.arc(n.x + n.w - 10, n.y + 10, 4, 0, Math.PI * 2);
+      ctx.fill();
+    }
 
     ctx.textAlign = 'left';
     ctx.textBaseline = 'alphabetic';
@@ -2703,6 +2800,7 @@ function showNodeTip(n, x, y) {
   html += tipRow('Тип', n.loctype || n.cat);
   if (n.locTypeCode != null) html += tipRow('loctype (код)', n.locTypeCode);
   if (n.srcType === 'prefix') html += tipRow('Источник типа', 'по названию — нет в loc');
+  if (FILTERS.nodes.has(n.id)) html += tipRow('Фильтр', 'выбран слева');
   html += tipRow('Связи', 'вход ' + n.inDeg + ' · выход ' + n.outDeg);
   html += tipRow('Продуктов (SKU)', skuHere.length);
   if (resHere.length) html += tipRow('Ресурсов', resHere.length);
@@ -2853,19 +2951,47 @@ function renderSidebarNodes() {
 function renderNodeModeSwitch() {
   const wrap = $('sbNodeMode');
   if (!wrap) return;
-  wrap.querySelectorAll('button[data-nmode]').forEach((b) => {
-    const on = b.dataset.nmode === NODE_FILTER_MODE;
+  wrap.querySelectorAll('button[data-nscope]').forEach((b) => {
+    const on = b.dataset.nscope === NODE_SCOPE_MODE;
     b.classList.toggle('on', on);
     b.setAttribute('aria-pressed', String(on));
   });
+  wrap.querySelectorAll('button[data-ndir]').forEach((b) => {
+    const on = b.dataset.ndir === NODE_DIRECTION_MODE;
+    b.classList.toggle('on', on);
+    b.setAttribute('aria-pressed', String(on));
+  });
+  const state = $('sbNodeModeState');
+  if (state) {
+    const scopeTxt = NODE_SCOPE_MODE === 'neighbors' ? 'Соседи' : 'Цепочка';
+    const dirTxt = NODE_DIRECTION_MODE === 'upstream'
+      ? 'только поставщики ↑'
+      : (NODE_DIRECTION_MODE === 'downstream' ? 'только сбыт ↓' : 'весь поток ↑↓');
+    state.textContent = scopeTxt + ' · ' + dirTxt;
+  }
   wrap.classList.toggle('dim', !FILTERS.nodes.size);
 }
 
 $('sbNodeMode').addEventListener('click', (e) => {
-  const b = e.target.closest('button[data-nmode]');
-  if (!b || b.dataset.nmode === NODE_FILTER_MODE) return;
-  NODE_FILTER_MODE = b.dataset.nmode;
-  refreshUI();
+  const scopeBtn = e.target.closest('button[data-nscope]');
+  if (scopeBtn) {
+    const next = scopeBtn.dataset.nscope;
+    if (!NODE_SCOPE_MODES.includes(next)) return;
+    NODE_SCOPE_MODE = next;
+    // По требованию: при выборе основного режима всегда возвращаем весь поток.
+    NODE_DIRECTION_MODE = 'both';
+    refreshUI();
+    return;
+  }
+
+  const dirBtn = e.target.closest('button[data-ndir]');
+  if (dirBtn) {
+    const next = dirBtn.dataset.ndir;
+    if (!NODE_DIRECTION_MODES.includes(next)) return;
+    // Повторный клик по «Поставщики»/«Сбыт» снимает ограничение и возвращает весь поток.
+    NODE_DIRECTION_MODE = NODE_DIRECTION_MODE === next ? 'both' : next;
+    refreshUI();
+  }
 });
 
 $('sbTree').addEventListener('click', (e) => {
@@ -3192,6 +3318,15 @@ function refreshUI(relayout) {
   if (VIEW_MODE === 'graph') drawGraph(); else renderMatrixView();
   renderLegend();
 
+  const sWrap = $('selectedPillWrap');
+  if (sWrap) {
+    sWrap.style.display = FILTERS.nodes.size ? 'block' : 'none';
+    if (FILTERS.nodes.size) {
+      const shown = GRAPH.nodes.filter((n) => FILTERS.nodes.has(n.id)).length;
+      $('selectedPillText').textContent = 'Выбрано узлов: ' + FILTERS.nodes.size + (shown !== FILTERS.nodes.size ? ' · на графе ' + shown : '');
+    }
+  }
+
   const fWrap = $('focusPillWrap');
   if (FOCUS_NODE_ID) {
     const info = getLineageInfo(FOCUS_NODE_ID);
@@ -3379,7 +3514,8 @@ function persistUI() {
       tab: ACTIVE_TAB,
       typeGran: TYPE_GRANULARITY,
       dirRev: LAYOUT_REVERSE,
-      nodeMode: NODE_FILTER_MODE,
+      nodeScope: NODE_SCOPE_MODE,
+      nodeDir: NODE_DIRECTION_MODE,
       sheetH: $('bottomSheet').style.height || '',
       sheetCollapsed: $('bottomSheet').classList.contains('collapsed'),
       sbMin: $('sidebar').classList.contains('min')
@@ -3428,7 +3564,19 @@ function restoreSession() {
   // и охвата фильтра узлов
   TYPE_GRANULARITY = ui.typeGran === 'detail' ? 'detail' : 'coarse';
   LAYOUT_REVERSE = ui.dirRev === true;
-  NODE_FILTER_MODE = NODE_FILTER_MODES.includes(ui.nodeMode) ? ui.nodeMode : 'chain';
+  // Старые сохранённые настройки (nodeMode) маппим в новую двухосевую модель.
+  if (NODE_SCOPE_MODES.includes(ui.nodeScope)) {
+    NODE_SCOPE_MODE = ui.nodeScope;
+    NODE_DIRECTION_MODE = NODE_DIRECTION_MODES.includes(ui.nodeDir) ? ui.nodeDir : 'both';
+  } else if (ui.nodeMode === 'neighbors') {
+    NODE_SCOPE_MODE = 'neighbors'; NODE_DIRECTION_MODE = 'both';
+  } else if (ui.nodeMode === 'upstream') {
+    NODE_SCOPE_MODE = 'chain'; NODE_DIRECTION_MODE = 'upstream';
+  } else if (ui.nodeMode === 'downstream') {
+    NODE_SCOPE_MODE = 'chain'; NODE_DIRECTION_MODE = 'downstream';
+  } else {
+    NODE_SCOPE_MODE = 'chain'; NODE_DIRECTION_MODE = 'both';
+  }
 
   if (ui.tab && TABLE_DEFS[ui.tab]) {
     ACTIVE_TAB = ui.tab;
@@ -3875,6 +4023,7 @@ $('listMot').addEventListener('change', (e) => { const m = e.target.dataset.mot;
 $('btnNodesClr').onclick = () => { FILTERS.nodes.clear(); refreshUI(); };
 $('bResetAllFilters').onclick = () => { resetFilters(); refreshUI(); };
 $('bClearFocus').onclick = () => { FOCUS_NODE_ID = null; refreshUI(); };
+$('bShowSelected').onclick = () => zoomToSelectedNodes();
 
 $('qItem').oninput = debounce(renderFilterPills, 120);
 $('qPds').oninput = debounce(renderFilterPills, 120);
