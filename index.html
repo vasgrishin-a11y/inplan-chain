@@ -1321,7 +1321,8 @@ td.cell-link:hover { color: var(--scp-accent); }
       Браузер подключается к серверу напрямую, поэтому на стороне ClickHouse должен быть разрешён
       CORS для чужих источников. Если страница открыта по HTTPS, хост ClickHouse тоже должен
       отвечать по HTTPS с действующим сертификатом: «смешанное» содержимое и самоподписанные
-      сертификаты браузер блокирует. Пароль передаётся параметром запроса — используйте аккаунт
+      сертификаты браузер блокирует. Схема подключения при HTTPS-странице переключается на
+      HTTPS · 443 автоматически. Пароль передаётся параметром запроса — используйте аккаунт
       с правами только на чтение.
     </div>
   </div>
@@ -3667,7 +3668,13 @@ const chIdent = (s) => '`' + String(s).replace(/`/g, '``') + '`';
    остаётся «простым» и не вызывает preflight. */
 async function chQuery(query, options = {}) {
   if (IS_FILE_PROTOCOL) throw new Error('страница открыта как файл — сеть недоступна');
-  if (location.protocol === 'https:' && CH.proto === 'http') throw new Error('смешанное содержимое: страница на HTTPS не может ходить на HTTP-хост');
+  /* Страница по HTTPS, а ClickHouse по HTTP — браузер блокирует смешанное
+     содержимое. Поднимаем схему до HTTPS · 443: запрос уйдёт (значения в
+     диалоге приводятся к нужным в chConnect). */
+  if (location.protocol === 'https:' && CH.proto === 'http') {
+    CH.proto = 'https';
+    CH.port = 443;
+  }
   const qs = new URLSearchParams();
   qs.set('query', query);
   qs.set('default_format', 'JSONEachRow');
@@ -3788,6 +3795,18 @@ async function chConnect(quiet) {
   CH.proto = $('chProto').value;
   CH.user = $('chUser').value.trim();
   CH.password = $('chPassword').value;
+
+  /* Страница открыта по HTTPS — браузер заблокирует запрос к ClickHouse по
+     HTTP (смешанное содержимое). Переводим подключение на HTTPS · 443, чтобы
+     и ручное подключение, и тихое автоподключение при открытии страницы
+     работали без дополнительных правок в диалоге. */
+  if (location.protocol === 'https:' && CH.proto === 'http') {
+    CH.proto = 'https';
+    CH.port = 443;
+    $('chProto').value = 'https';
+    $('chPort').value = 443;
+  }
+
   if (!CH.host) { if (!quiet) setChStatus('err', 'Укажите хост'); return false; }
 
   if (!quiet) setChStatus('busy', 'Подключение...');
