@@ -1281,7 +1281,6 @@ td.cell-link:hover { color: var(--scp-accent); }
       <input id="chPort" type="text" inputmode="numeric" placeholder="443">
       <label for="chProto">Протокол</label>
       <select id="chProto">
-        <option value="https">HTTPS · 443</option>
         <option value="http">HTTP · 8123</option>
       </select>
       <label for="chUser">Логин</label>
@@ -3641,12 +3640,12 @@ const persistCh = () => {
 /* Поля диалога — источник значений для chConnect и когда диалог закрыт:
    синхронизируем их с сохранённым профилем сразу при загрузке, чтобы
    тихое автоподключение работало без показа диалога. */
-$('chHost').value = CH.host;
-$('chPort').value = CH.port;
-$('chProto').value = CH.proto;
-$('chUser').value = CH.user;
-$('chPassword').value = CH.password;
-$('chProto').onchange = () => { $('chPort').value = $('chProto').value === 'http' ? 8123 : 443; };
+$('chHost').value = CH.host || '';
+$('chPort').value = CH.port || 8123;
+$('chProto').value = CH.proto || 'http';
+$('chUser').value = CH.user || '';
+$('chPassword').value = CH.password || '';
+$('chProto').onchange = () => { $('chPort').value = 8123; };
 
 /* Чип в шапке: зелёная точка и имя проекта, когда подключены; серый — нет. */
 function renderChChip() {
@@ -3778,11 +3777,11 @@ async function chSelectAll(kind, db, tbl, limit) {
 }
 /* ── Диалог ── */
 function openChDialog() {
-  $('chHost').value = CH.host;
-  $('chPort').value = CH.port;
-  $('chProto').value = CH.proto;
-  $('chUser').value = CH.user;
-  $('chPassword').value = CH.password;
+  $('chHost').value = CH.host || '';
+  $('chPort').value = CH.port || 8123;
+  $('chProto').value = CH.proto || 'http';
+  $('chUser').value = CH.user || '';
+  $('chPassword').value = CH.password || '';
   $('chConnStatus').className = 'dlg-status';
   $('chConnStatus').textContent = CH.online ? 'Подключено' : '';
   $('chConnStatus').classList.toggle('ok', CH.online);
