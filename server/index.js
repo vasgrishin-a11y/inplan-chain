@@ -136,6 +136,47 @@ async function handleApi(req, res, pathname, query) {
     return;
   }
 
+  /* Прокси к HTTP-интерфейсу ClickHouse. Нужен, когда страница дашборда открыта
+     по HTTPS, а ClickHouse работает по HTTP: браузер блокирует «смешанное»
+     содержимое, поэтому запрос идёт на свой же источник, а сервер уже пересылает
+     его к ClickHouse (сервер-сервер, ограничения браузера не действуют). */
+  if (pathname === '/api/clickhouse/proxy' && req.method === 'POST') {
+    let payload;
+    try {
+      payload = JSON.parse(await readBody(req) || '{}');
+    } catch (e) {
+      sendJson(res, 400, { ok: false, error: 'некорректный JSON: ' + e.message });
+      return;
+    }
+    const { target, query, user, password, database } = payload || {};
+    if (!target || !target.host || !target.port || !query) {
+      sendJson(res, 400, { ok: false, error: 'нужны target.{proto,host,port} и query' });
+      return;
+    }
+    const qs = new URLSearchParams();
+    qs.set('query', query);
+    qs.set('default_format', 'JSONEachRow');
+    if (user) qs.set('user', user);
+    if (password) qs.set('password', password);
+    if (database) qs.set('database', database);
+    const chUrl = (target.proto || 'http') + '://' + target.host + ':' + target.port + '/?' + qs.toString();
+    try {
+      const chRes = await fetch(chUrl, { method: 'POST' });
+      const text = await chRes.text();
+      res.writeHead(chRes.status, {
+        'Content-Type': 'application/json; charset=utf-8',
+        'Content-Length': Buffer.byteLength(text),
+        'Cache-Control': 'no-store',
+        'Access-Control-Allow-Origin': '*'
+      });
+      res.end(text);
+      return;
+    } catch (e) {
+      sendJson(res, 502, { ok: false, error: 'прокси к ClickHouse не сработал: ' + String(e && e.message || e) });
+      return;
+    }
+  }
+
   sendJson(res, 404, { ok: false, error: 'неизвестный метод API: ' + req.method + ' ' + pathname });
 }
 
