@@ -1326,6 +1326,10 @@ td.cell-link:hover { color: var(--scp-accent); }
       браузер блокирует). Пароль передаётся параметром запроса — используйте аккаунт с правами
       только на чтение.
     </div>
+    <div id="chProxyHint" class="dlg-hint" style="display:none">
+      Локальный HTTPS-прокси: https://127.0.0.1:8443; учётные данные указываются при запуске прокси.
+      Поля логина и пароля на публичном сайте не используются.
+    </div>
   </div>
 </div>
 <!-- ═══════════════ СКРИПТЫ МОДЕЛИ И ДВИЖКА ═══════════════ -->
@@ -3612,6 +3616,13 @@ const LS_CH = 'inplan_ch_v1';
 const CH_TIMEOUT_MS = 15000;
 const CH_ROW_LIMIT = 500000;
 const IS_FILE_PROTOCOL = location.protocol === 'file:';
+/* Публичный GitHub Pages открыт по HTTPS, прямой HTTP-запрос к ClickHouse
+   браузер блокирует. SQL-запросы идут через локальный HTTPS-прокси
+   https://127.0.0.1:8443/api/clickhouse/proxy. Учётные данные задаются только
+   в локальном процессе прокси (CH_USER/CH_PASSWORD), из браузера передаются
+   только query и database. */
+const IS_GITHUB_PAGES = location.protocol === 'https:' && location.hostname === 'vasgrishin-a11y.github.io';
+const LOCAL_PROXY_URL = 'https://127.0.0.1:8443/api/clickhouse/proxy';
 
 const CH = {
   host: '',
@@ -3627,13 +3638,28 @@ const CH = {
 
 try {
   const saved = JSON.parse(localStorage.getItem(LS_CH) || '{}');
-  ['host', 'port', 'proto', 'user', 'password', 'db'].forEach((k) => { if (saved[k] !== undefined && saved[k] !== '') CH[k] = saved[k]; });
+  ['host', 'port', 'proto', 'db'].forEach((k) => { if (saved[k] !== undefined && saved[k] !== '') CH[k] = saved[k]; });
   Object.keys(CH.tables).forEach((k) => { if (saved.tables && saved.tables[k]) CH.tables[k] = saved.tables[k]; });
+  // На GitHub Pages учётные данные не читаются из localStorage и не сохраняются туда.
+  // Очищаем ранее сохранённые user/password, если они есть.
+  if (IS_GITHUB_PAGES && (saved.user || saved.password)) {
+    try {
+      const cleaned = { ...saved };
+      delete cleaned.user;
+      delete cleaned.password;
+      localStorage.setItem(LS_CH, JSON.stringify(cleaned));
+    } catch (e) { void e; }
+  }
 } catch (e) { void e; }
 
 const persistCh = () => {
   try {
-    localStorage.setItem(LS_CH, JSON.stringify({ host: CH.host, port: CH.port, proto: CH.proto, user: CH.user, password: CH.password, db: CH.db, tables: CH.tables }));
+    const payload = { host: CH.host, port: CH.port, proto: CH.proto, db: CH.db, tables: CH.tables };
+    if (!IS_GITHUB_PAGES) {
+      payload.user = CH.user;
+      payload.password = CH.password;
+    }
+    localStorage.setItem(LS_CH, JSON.stringify(payload));
   } catch (e) { void e; }
 };
 
@@ -3643,8 +3669,17 @@ const persistCh = () => {
 $('chHost').value = CH.host || '';
 $('chPort').value = CH.port || 8123;
 $('chProto').value = CH.proto || 'http';
-$('chUser').value = CH.user || '';
-$('chPassword').value = CH.password || '';
+if (IS_GITHUB_PAGES) {
+  $('chUser').value = '';
+  $('chPassword').value = '';
+  $('chUser').disabled = true;
+  $('chPassword').disabled = true;
+} else {
+  $('chUser').value = CH.user || '';
+  $('chPassword').value = CH.password || '';
+  $('chUser').disabled = false;
+  $('chPassword').disabled = false;
+}
 $('chProto').onchange = () => { $('chPort').value = 8123; };
 
 /* Чип в шапке: зелёная точка и имя проекта, когда подключены; серый — нет. */
@@ -3670,46 +3705,58 @@ const chIdent = (s) => '`' + String(s).replace(/`/g, '``') + '`';
 async function chQuery(query, options = {}) {
   if (IS_FILE_PROTOCOL) throw new Error('страница открыта как файл — сеть недоступна');
 
-  const qs = new URLSearchParams();
-  qs.set('query', query);
-  qs.set('default_format', 'JSONEachRow');
-  if (CH.user) qs.set('user', CH.user);
-  if (CH.password) qs.set('password', CH.password);
-  if (options.database) qs.set('database', options.database);
-
   const ctrl = new AbortController();
   const timer = setTimeout(() => ctrl.abort(), options.timeout || CH_TIMEOUT_MS);
   let res;
   try {
-    const useProxy = location.protocol === 'https:' && CH.proto === 'http';
-    if (useProxy) {
-      /* Страница открыта по HTTPS, а ClickHouse настроен на HTTP — браузер
-         блокирует «смешанное» содержимое. Ходим к ClickHouse через прокси на
-         своём же источнике (server/index.js → /api/clickhouse/proxy), чтобы
-         браузер не блокировал запрос, а настройки (HTTP, порт, логин) остались
-         без изменений. */
-      res = await fetch('/api/clickhouse/proxy', {
+    if (IS_GITHUB_PAGES) {
+      const body = { query };
+      if (options.database) body.database = options.database;
+      res = await fetch(LOCAL_PROXY_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json; charset=utf-8' },
-        body: JSON.stringify({
-          target: { proto: CH.proto, host: CH.host, port: CH.port },
-          query,
-          user: CH.user,
-          password: CH.password,
-          database: options.database
-        }),
+        body: JSON.stringify(body),
         signal: ctrl.signal
       });
     } else {
-      res = await fetch(CH.proto + '://' + CH.host + ':' + CH.port + '/?' + qs.toString(), { method: 'POST', signal: ctrl.signal });
+      const qs = new URLSearchParams();
+      qs.set('query', query);
+      qs.set('default_format', 'JSONEachRow');
+      if (CH.user) qs.set('user', CH.user);
+      if (CH.password) qs.set('password', CH.password);
+      if (options.database) qs.set('database', options.database);
+
+      const useProxy = location.protocol === 'https:' && CH.proto === 'http';
+      if (useProxy) {
+        res = await fetch('/api/clickhouse/proxy', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json; charset=utf-8' },
+          body: JSON.stringify({
+            target: { proto: CH.proto, host: CH.host, port: CH.port },
+            query,
+            user: CH.user,
+            password: CH.password,
+            database: options.database
+          }),
+          signal: ctrl.signal
+        });
+      } else {
+        res = await fetch(CH.proto + '://' + CH.host + ':' + CH.port + '/?' + qs.toString(), { method: 'POST', signal: ctrl.signal });
+      }
     }
   } catch (err) {
     if (err && err.name === 'AbortError') throw new Error('ClickHouse не ответил за ' + Math.round((options.timeout || CH_TIMEOUT_MS) / 1000) + ' с');
+    if (IS_GITHUB_PAGES) {
+      throw new Error('Нет доступа к локальному HTTPS-прокси (https://127.0.0.1:8443) — проверьте, что прокси запущен, сертификат доверен и SSH-туннель к ClickHouse активен.');
+    }
     throw new Error('Нет доступа к ' + CH.host + ':' + CH.port + ' — проверьте хост и порт, CORS и сертификат (' + (err && err.message ? err.message : 'сеть недоступна') + ')');
   } finally {
     clearTimeout(timer);
   }
-  if (res.status === 401 || res.status === 403) throw new Error('в доступе отказано (' + res.status + ') — проверьте логин и пароль');
+  if (res.status === 401 || res.status === 403) {
+    if (IS_GITHUB_PAGES) throw new Error('прокси вернул отказ в доступе — проверьте учётные данные при запуске прокси (CH_USER/CH_PASSWORD)');
+    throw new Error('в доступе отказано (' + res.status + ') — проверьте логин и пароль');
+  }
   const text = await res.text();
   if (!res.ok) throw new Error('ClickHouse ответил ' + res.status + ': ' + text.split('\n')[0].slice(0, 300));
   const rows = [];
@@ -3780,8 +3827,19 @@ function openChDialog() {
   $('chHost').value = CH.host || '';
   $('chPort').value = CH.port || 8123;
   $('chProto').value = CH.proto || 'http';
-  $('chUser').value = CH.user || '';
-  $('chPassword').value = CH.password || '';
+  if (IS_GITHUB_PAGES) {
+    $('chUser').value = '';
+    $('chPassword').value = '';
+    $('chUser').disabled = true;
+    $('chPassword').disabled = true;
+    $('chProxyHint').style.display = 'block';
+  } else {
+    $('chUser').value = CH.user || '';
+    $('chPassword').value = CH.password || '';
+    $('chUser').disabled = false;
+    $('chPassword').disabled = false;
+    $('chProxyHint').style.display = 'none';
+  }
   $('chConnStatus').className = 'dlg-status';
   $('chConnStatus').textContent = CH.online ? 'Подключено' : '';
   $('chConnStatus').classList.toggle('ok', CH.online);
@@ -3807,13 +3865,23 @@ function fillSelect(sel, names, current, emptyLabel) {
 }
 
 async function chConnect(quiet) {
-  CH.host = $('chHost').value.trim().replace(/^https?:\/\//, '').replace(/[/:].*$/, '');
-  CH.port = Number($('chPort').value) || 443;
-  CH.proto = $('chProto').value;
-  CH.user = $('chUser').value.trim();
-  CH.password = $('chPassword').value;
+  if (IS_GITHUB_PAGES) {
+    // На публичном GitHub Pages хост/порт/протокол фиксированы для локального прокси,
+    // учётные данные не требуются — они задаются в локальном процессе прокси.
+    CH.host = '127.0.0.1';
+    CH.port = 8443;
+    CH.proto = 'https';
+    CH.user = '';
+    CH.password = '';
+  } else {
+    CH.host = $('chHost').value.trim().replace(/^https?:\/\//, '').replace(/[/:].*$/, '');
+    CH.port = Number($('chPort').value) || 443;
+    CH.proto = $('chProto').value;
+    CH.user = $('chUser').value.trim();
+    CH.password = $('chPassword').value;
 
-  if (!CH.host) { if (!quiet) setChStatus('err', 'Укажите хост'); return false; }
+    if (!CH.host) { if (!quiet) setChStatus('err', 'Укажите хост'); return false; }
+  }
 
   if (!quiet) setChStatus('busy', 'Подключение...');
   renderChChip();
@@ -3998,7 +4066,8 @@ $('miChOff').onclick = chDisconnect;
 
 /* Тихое переподключение при открытии страницы, если подключение уже настраивали */
 async function chAutoConnect() {
-  if (!CH.host || !CH.user) return;
+  if (!IS_GITHUB_PAGES && (!CH.host || !CH.user)) return;
+  if (IS_GITHUB_PAGES && !CH.host) CH.host = '127.0.0.1';
   await chConnect(true);
 }
 
