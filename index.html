@@ -1319,11 +1319,13 @@ td.cell-link:hover { color: var(--scp-accent); }
     </div>
     <div class="dlg-hint">
       Браузер подключается к серверу напрямую, поэтому на стороне ClickHouse должен быть разрешён
-      CORS для чужих источников. Если страница открыта по HTTPS, хост ClickHouse тоже должен
-      отвечать по HTTPS с действующим сертификатом: «смешанное» содержимое и самоподписанные
-      сертификаты браузер блокирует. Схема подключения при HTTPS-странице переключается на
-      HTTPS · 443 автоматически. Пароль передаётся параметром запроса — используйте аккаунт
-      с правами только на чтение.
+      CORS для чужих источников. Если страница открыта по HTTPS, а ClickHouse работает по HTTP,
+      браузер блокирует «смешанное» содержимое — в этом случае запрос идёт через прокси локального
+      сервера синхронизации (`server/index.js`, endpoint `/api/clickhouse/proxy`), а настройки
+      подключения (HTTP, порт, логин) остаются без изменений. Если сервера синхронизации нет, хост
+      ClickHouse должен отвечать по HTTPS с действующим сертификатом (самоподписанные сертификаты
+      браузер блокирует). Пароль передаётся параметром запроса — используйте аккаунт с правами
+      только на чтение.
     </div>
   </div>
 </div>
@@ -3668,24 +3670,40 @@ const chIdent = (s) => '`' + String(s).replace(/`/g, '``') + '`';
    остаётся «простым» и не вызывает preflight. */
 async function chQuery(query, options = {}) {
   if (IS_FILE_PROTOCOL) throw new Error('страница открыта как файл — сеть недоступна');
-  /* Страница по HTTPS, а ClickHouse по HTTP — браузер блокирует смешанное
-     содержимое. Поднимаем схему до HTTPS · 443: запрос уйдёт (значения в
-     диалоге приводятся к нужным в chConnect). */
-  if (location.protocol === 'https:' && CH.proto === 'http') {
-    CH.proto = 'https';
-    CH.port = 443;
-  }
+
   const qs = new URLSearchParams();
   qs.set('query', query);
   qs.set('default_format', 'JSONEachRow');
   if (CH.user) qs.set('user', CH.user);
   if (CH.password) qs.set('password', CH.password);
   if (options.database) qs.set('database', options.database);
+
   const ctrl = new AbortController();
   const timer = setTimeout(() => ctrl.abort(), options.timeout || CH_TIMEOUT_MS);
   let res;
   try {
-    res = await fetch(CH.proto + '://' + CH.host + ':' + CH.port + '/?' + qs.toString(), { method: 'POST', signal: ctrl.signal });
+    const useProxy = location.protocol === 'https:' && CH.proto === 'http';
+    if (useProxy) {
+      /* Страница открыта по HTTPS, а ClickHouse настроен на HTTP — браузер
+         блокирует «смешанное» содержимое. Ходим к ClickHouse через прокси на
+         своём же источнике (server/index.js → /api/clickhouse/proxy), чтобы
+         браузер не блокировал запрос, а настройки (HTTP, порт, логин) остались
+         без изменений. */
+      res = await fetch('/api/clickhouse/proxy', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json; charset=utf-8' },
+        body: JSON.stringify({
+          target: { proto: CH.proto, host: CH.host, port: CH.port },
+          query,
+          user: CH.user,
+          password: CH.password,
+          database: options.database
+        }),
+        signal: ctrl.signal
+      });
+    } else {
+      res = await fetch(CH.proto + '://' + CH.host + ':' + CH.port + '/?' + qs.toString(), { method: 'POST', signal: ctrl.signal });
+    }
   } catch (err) {
     if (err && err.name === 'AbortError') throw new Error('ClickHouse не ответил за ' + Math.round((options.timeout || CH_TIMEOUT_MS) / 1000) + ' с');
     throw new Error('Нет доступа к ' + CH.host + ':' + CH.port + ' — проверьте хост и порт, CORS и сертификат (' + (err && err.message ? err.message : 'сеть недоступна') + ')');
@@ -3795,17 +3813,6 @@ async function chConnect(quiet) {
   CH.proto = $('chProto').value;
   CH.user = $('chUser').value.trim();
   CH.password = $('chPassword').value;
-
-  /* Страница открыта по HTTPS — браузер заблокирует запрос к ClickHouse по
-     HTTP (смешанное содержимое). Переводим подключение на HTTPS · 443, чтобы
-     и ручное подключение, и тихое автоподключение при открытии страницы
-     работали без дополнительных правок в диалоге. */
-  if (location.protocol === 'https:' && CH.proto === 'http') {
-    CH.proto = 'https';
-    CH.port = 443;
-    $('chProto').value = 'https';
-    $('chPort').value = 443;
-  }
 
   if (!CH.host) { if (!quiet) setChStatus('err', 'Укажите хост'); return false; }
 
